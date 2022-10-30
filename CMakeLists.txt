@@ -1,0 +1,18 @@
+cmake_minimum_required(VERSION 3.10)
+project (WSHEET VERSION 1.0)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+
+if (NOT ("${CMAKE_CURRENT_BINARY_DIR}" STREQUAL "${CMAKE_SOURCE_DIR}/build"))
+    message(FATAL_ERROR "Wrong build directory\nShould be ${CMAKE_SOURCE_DIR}/build")
+endif()
+
+set(INCLUDE_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/include)
+set(SRC_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/src)
+list(APPEND INCLUDE_DIRS ${INCLUDE_PREFIX})
+
+# message(NOTICE ${CMAKE_CURRENT_SOURCE_DIR})
+# message(NOTICE ${CMAKE_SOURCE_DIR})
+# message(NOTICE ${CMAKE_CURRENT_BINARY_DIR})
+
+add_subdirectory(src)
