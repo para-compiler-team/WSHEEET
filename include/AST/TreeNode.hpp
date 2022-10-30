@@ -28,7 +28,8 @@ class ITreeNode {
 public:
 }; // class ITreeNode
 
-template <typename P> class ITreeNodeWParent : public ITreeNode {
+template <typename P>
+class ITreeNodeWParent : public virtual ITreeNode {
 public:
   using ParentTy = P;
 
@@ -41,7 +42,8 @@ public:
   virtual ITreeNodeWParent *unlinkParent(ParentTy) = 0;
 }; // class ITreeNodeWParent
 
-template <typename P> class TreeNodeWParent : public ITreeNodeWParent<P> {
+template <typename P>
+class TreeNodeWParent : public ITreeNodeWParent<P> {
 public:
   using ParentTy = P;
 
@@ -53,17 +55,19 @@ protected:
 public:
   bool isRoot() const override { return parent_ == nullptr; }
 
-  TreeNodeWParent *parent() override { return parent_; }
-  const TreeNodeWParent *parent() const override { return parent_; }
+  ParentTy *parent() override { return parent_; }
+  const ParentTy *parent() const override { return parent_; }
 
-  TreeNodeWParent *linkParent(ParentTy *parent) override { parent_ = parent; }
-
-  TreeNodeWParent *unlinkParent() override { parent_ = nullptr; }
+  using ITreeNodeWParent<P>::linkParent;
+  ITreeNodeWParent<P> *linkParent(ParentTy *parent) override { parent_ = parent; }
+  using ITreeNodeWParent<P>::unlinkParent;
+  ITreeNodeWParent<P> *unlinkParent() override { parent_ = nullptr; }
 
   virtual ~TreeNodeWParent() {}
 }; // class ITreeNode
 
-template <typename C> class ITreeNodeWCh : public ITreeNode {
+template <typename C>
+class ITreeNodeWCh : public virtual ITreeNode {
 public:
   using ChildTy = C;
 
@@ -71,62 +75,94 @@ public:
   virtual ITreeNodeWCh *unlinkChild() = 0;
 }; // class ITreeNodeWCh
 
-template <typename C> class ITreeNodeW2Ch : public ITreeNodeWCh<C> {
+template <typename C>
+class TreeNodeWCh : public ITreeNodeWCh<C> {
 public:
-  using ChildrenTy = C;
+  using ChildTy = C;
 
-  virtual ChildrenTy *left() = 0;
-  virtual const ChildrenTy *left() const = 0;
+protected:
+  ChildTy *child_;
 
-  virtual ChildrenTy *right() = 0;
-  virtual const ChildrenTy *right() const = 0;
+  TreeNodeWCh(ChildTy *child) : child_{child} {}
 
-  virtual ITreeNodeW2Ch *linkLeft(ChildrenTy *child) = 0;
-  virtual ITreeNodeW2Ch *linkRight(ChildrenTy *child) = 0;
+public:
+  ITreeNodeWCh<C> *linkChild(ChildTy *child) override { child_ = child; }
+  ITreeNodeWCh<C> *unlinkChild() override { child_ = nullptr; }
+}; // class TreeNodeWCh
+
+template <typename P, typename C>
+class TreeNodeWParentAndCh : public virtual TreeNodeWParent<P>, public virtual TreeNodeWCh<C> {
+public:
+  using ParentTy = P;
+  using ChildTy = C;
+
+protected:
+  using TreeNodeWParent<ParentTy>::parent_;
+  using TreeNodeWCh<ChildTy>::child_;
+
+
+  TreeNodeWParentAndCh(ParentTy *p = nullptr, ChildTy *c = nullptr)
+      : TreeNodeWParent<P>{p}, TreeNodeWCh<C>{c} {}
+}; // class TreeNodeWParentAndCh
+
+template <typename C1, typename C2 = C1>
+class ITreeNodeW2Ch : public ITreeNodeWCh<C1> {
+public:
+  using LeftChildTy = C1;
+  using RightChildTy = C2;
+
+  virtual LeftChildTy *left() = 0;
+  virtual const RightChildTy *left() const = 0;
+
+  virtual LeftChildTy *right() = 0;
+  virtual const RightChildTy *right() const = 0;
+
+  virtual ITreeNodeW2Ch *linkLeft(LeftChildTy *child) = 0;
+  virtual ITreeNodeW2Ch *linkRight(RightChildTy *child) = 0;
 }; // class TreeNodeW2Ch
 
 template <typename T, typename C>
 concept CanLinkChildren = std::derived_from<T, ITreeNodeWCh<C>>;
 
-template <typename C1, typename C2 = C1>
-class TreeNodeW2Ch : public ITreeNodeW2Ch<C1>, public ITreeNodeW2Ch<C2> {
+template <typename C1, typename C2>
+class TreeNodeW2Ch : public virtual ITreeNodeW2Ch<C1>, public virtual ITreeNodeW2Ch<C2> {
 public:
-  using LeftChildrenTy = C1;
-  using RightChildrenTy = C2;
+  using LeftChildTy = C1;
+  using RightChildTy = C2;
 
 protected:
-  LeftChildrenTy *left_;
-  RightChildrenTy *right_;
+  LeftChildTy *left_;
+  RightChildTy *right_;
 
-  TreeNodeW2Ch(LeftChildrenTy *l = nullptr, RightChildrenTy *r = nullptr)
+  TreeNodeW2Ch(LeftChildTy *l = nullptr, RightChildTy *r = nullptr)
       : left_{l}, right_{r} {}
 
 public:
-  LeftChildrenTy *left() override { return left_; }
-  const LeftChildrenTy *left() const override { return left_; }
+  LeftChildTy *left() override { return left_; }
+  const LeftChildTy *left() const override { return left_; }
 
-  RightChildrenTy *right() override { return right_; }
-  const RightChildrenTy *right() const override { return right_; }
+  RightChildTy *right() override { return right_; }
+  const RightChildTy *right() const override { return right_; }
 
-  TreeNodeW2Ch *linkLeft(LeftChildrenTy *child) override {
+  TreeNodeW2Ch *linkLeft(LeftChildTy *child) override {
     left_ = child;
     return this;
   }
 
-  TreeNodeW2Ch *linkRight(RightChildrenTy *child) override {
+  TreeNodeW2Ch *linkRight(RightChildTy *child) override {
     right_ = child;
     return this;
   }
 
-  TreeNodeW2Ch *linkChild(RightChildrenTy *child) requires(
-      std::same_as<std::remove_cvref_t<LeftChildrenTy>,
-                   std::remove_cvref_t<RightChildrenTy>>) override {
+  TreeNodeW2Ch *linkChild(RightChildTy *child) requires(
+      std::same_as<std::remove_cvref_t<LeftChildTy>,
+                   std::remove_cvref_t<RightChildTy>>) override {
     return linkRight(child);
   }
 
-  TreeNodeW2Ch *unlinkChild(RightChildrenTy *child) requires(
-      std::same_as<std::remove_cvref_t<LeftChildrenTy>,
-                   std::remove_cvref_t<RightChildrenTy>>) override {
+  TreeNodeW2Ch *unlinkChild(RightChildTy *child) requires(
+      std::same_as<std::remove_cvref_t<LeftChildTy>,
+                   std::remove_cvref_t<RightChildTy>>) override {
     if (left_ == child) {
       left_ = nullptr;
       return *this;
@@ -140,15 +176,15 @@ public:
     return this;
   }
 
-  TreeNodeW2Ch *linkChild(LeftChildrenTy *child) requires(
-      !std::same_as<std::remove_cvref_t<LeftChildrenTy>,
-                    std::remove_cvref_t<RightChildrenTy>>) override {
+  TreeNodeW2Ch *linkChild(LeftChildTy *child) requires(
+      !std::same_as<std::remove_cvref_t<LeftChildTy>,
+                    std::remove_cvref_t<RightChildTy>>) override {
     return linkLeft(child);
   }
 
-  TreeNodeW2Ch *unlinkChild(LeftChildrenTy *child) requires(
-      !std::same_as<std::remove_cvref_t<LeftChildrenTy>,
-                    std::remove_cvref_t<RightChildrenTy>>) override {
+  TreeNodeW2Ch *unlinkChild(LeftChildTy *child) requires(
+      !std::same_as<std::remove_cvref_t<LeftChildTy>,
+                    std::remove_cvref_t<RightChildTy>>) override {
     if (left_ == child) {
       left_ = nullptr;
       return *this;
@@ -157,15 +193,15 @@ public:
     return this;
   }
 
-  TreeNodeW2Ch *linkChild(RightChildrenTy *child) requires(
-      !std::same_as<std::remove_cvref_t<LeftChildrenTy>,
-                    std::remove_cvref_t<RightChildrenTy>>) override {
+  TreeNodeW2Ch *linkChild(RightChildTy *child) requires(
+      !std::same_as<std::remove_cvref_t<LeftChildTy>,
+                    std::remove_cvref_t<RightChildTy>>) override {
     return linkRight(child);
   }
 
-  TreeNodeW2Ch *unlinkChild(RightChildrenTy *child) requires(
-      !std::same_as<std::remove_cvref_t<LeftChildrenTy>,
-                    std::remove_cvref_t<RightChildrenTy>>) override {
+  TreeNodeW2Ch *unlinkChild(RightChildTy *child) requires(
+      !std::same_as<std::remove_cvref_t<LeftChildTy>,
+                    std::remove_cvref_t<RightChildTy>>) override {
     if (right_ == child) {
       right_ = nullptr;
       return *this;
@@ -177,21 +213,21 @@ public:
 
 template <typename P, typename C1, typename C2 = C1>
 class TreeNodeWParentAnd2Ch : public TreeNodeWParent<P>,
-                              public TreeNodeW2Ch<C> {
+                              public TreeNodeW2Ch<C1, C2> {
 public:
   using ParentTy = P;
-  using LeftChildrenTy = C1;
-  using RightChildrenTy = C2;
+  using LeftChildTy = C1;
+  using RightChildTy = C2;
 
 protected:
   using TreeNodeWParent<ParentTy>::parent_;
-  using TreeNodeW2Ch<LeftChildrenTy>::left_;
-  using TreeNodeW2Ch<RightChildrenTy>::right_;
+  using TreeNodeW2Ch<LeftChildTy>::left_;
+  using TreeNodeW2Ch<RightChildTy>::right_;
 
-  TreeNodeWParentAnd2Ch(ParentTy *p, LeftChildrenTy *l = nullptr,
-                        RightChildrenTy *r = nullptr)
+  TreeNodeWParentAnd2Ch(ParentTy *p, LeftChildTy *l = nullptr,
+                        RightChildTy *r = nullptr)
       : TreeNodeWParent<ParentTy>{p},
-        TreeNodeW2Ch<LeftChildrenTy, RightChildrenTy>{l, r} {
+        TreeNodeW2Ch<LeftChildTy, RightChildTy>{l, r} {
     if (left_ != nullptr)
       left_->parent_ = this;
 
@@ -200,7 +236,7 @@ protected:
   }
 
 public:
-  TreeNodeWParentAnd2Ch *linkLeft(LeftChildrenTy *child) override {
+  TreeNodeWParentAnd2Ch *linkLeft(LeftChildTy *child) override {
     if (child == nullptr) {
       left_ = nullptr;
       return this;
@@ -211,7 +247,7 @@ public:
     return this;
   }
 
-  TreeNodeWParentAnd2Ch *linkRight(RightChildrenTy *child) override {
+  TreeNodeWParentAnd2Ch *linkRight(RightChildTy *child) override {
     if (child == nullptr) {
       right_ = nullptr;
       return this;
@@ -230,6 +266,9 @@ public:
   }
 }; // class TreeNodeW2Ch
 
+#if ENABLE_NODE_WITH_MANY_CH
 template <typename P, typename C>
 class TreeNodeWParentAndManyCh : public TreeNodeWParent<P>, public TreeNodeWManyCh<C> {};
+#endif
+
 } // namespace wsheeet::AST

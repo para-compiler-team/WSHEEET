@@ -18,16 +18,21 @@
 
 #pragma once
 
-#include <string_view>
+#include <algorithm>
+#include <string>
+#include <sstream>
 #include <vector>
 
 namespace wsheeet {
 
 class IType {
 public:
-  virtual std::string_view name() const = 0;
+  using ValueTy = void;
+
+  virtual std::string name() const = 0;
   virtual bool isGeneric() const = 0;
   virtual bool isSimple() const = 0;
+  virtual bool isChar() const = 0;
   virtual bool isInt() const = 0;
   virtual bool isFloat() const = 0;
   virtual bool isDouble() const = 0;
@@ -38,11 +43,21 @@ public:
   virtual bool isFunction() const = 0;
 }; // class IType
 
+namespace concepts {
+
+template <typename T>
+concept Type = std::derived_from<T, IType>;
+
+} // namespace concepts
+
+
 class GenericType : public IType {
 public:
   bool isGeneric() const override { return true; }
+  std::string name() const override { return std::string{"generic"}; };
 
   bool isSimple() const override { return false; }
+  bool isChar() const override { return false; }
   bool isInt() const override { return false; }
   bool isFloat() const override { return false; }
   bool isDouble() const override { return false; }
@@ -53,11 +68,20 @@ public:
   bool isFunction() const override { return false; }
 }; // class GenericType
 
+namespace concepts {
+
+template <typename T>
+concept GenericType = std::derived_from<T, wsheeet::GenericType>;
+
+} // namespace concepts
+
+
 class SimpleType : public IType {
 public:
   bool isSimple() const override { return true; }
 
   bool isGeneric() const override { return false; }
+  bool isChar() const override { return false; }
   bool isInt() const override { return false; }
   bool isFloat() const override { return false; }
   bool isDouble() const override { return false; }
@@ -68,24 +92,49 @@ public:
   bool isFunction() const override { return false; }
 }; // class SimpleType
 
+namespace concepts {
+
+template <typename T>
+concept SimpleType = std::derived_from<T, wsheeet::SimpleType>;
+
+} // namespace concepts
+
+class CharType : public SimpleType {
+public:
+  using ValueTy = char;
+
+  bool isChar() const override { return true; }
+
+  std::string name() const override { return "char"; };
+}; // class IntType
+
 class IntType : public SimpleType {
 public:
+  using ValueTy = int;
+
   bool isInt() const override { return true; }
 
+  std::string name() const override { return "int"; };
 protected:
   size_t bitwidth;
 }; // class IntType
 
 class FloatType : public SimpleType {
 public:
+  using ValueTy = float;
+
   bool isFloat() const override { return true; }
 
+  std::string name() const override { return "float"; };
 }; // class FloatType
 
 class DoubleType : public SimpleType {
 public:
+  using ValueTy = double;
+
   bool isDouble() const override { return true; }
 
+  std::string name() const override { return "double"; };
 }; // class DoubleType
 
 class CompoundType : public IType {
@@ -93,6 +142,7 @@ public:
   bool isCompound() const override { return true; }
 
   bool isGeneric() const override { return false; }
+  bool isChar() const override { return false; }
   bool isSimple() const override { return false; }
   bool isInt() const override { return false; }
   bool isFloat() const override { return false; }
@@ -103,6 +153,7 @@ public:
   bool isFunction() const override { return false; }
 }; // class CompoundType
 
+template <concepts::Type T>
 class ArrayType : public CompoundType {
 public:
   bool isArray() const override { return true; }
@@ -110,6 +161,13 @@ public:
 protected:
   IType *elemType;
   size_t size;
+
+public:
+  std::string name() const override {
+    std::ostringstream oss;
+    oss << elemType->name() << "[" << size << "]";
+    return oss.str();
+  }
 }; // class ArrayType
 
 class StructureType : public CompoundType {
@@ -118,6 +176,22 @@ public:
 
 protected:
   std::vector<IType *> nestedTypes;
+
+public:
+  std::string name() const override {
+    std::ostringstream oss;
+    oss << "{ ";
+    bool firstPrinted = false;
+    std::ranges::for_each(nestedTypes, [firstPrinted, &oss](auto *type) mutable {
+      if (firstPrinted)
+        oss << ", ";
+      else
+        firstPrinted = true;
+      oss << type->name();
+    });
+    oss << " }";
+    return oss.str();
+  }
 }; // class StructureType
 
 class VectorType : public CompoundType {
@@ -127,6 +201,13 @@ public:
 protected:
   IType *elemType;
   size_t size;
+
+public:
+  std::string name() const override {
+    std::ostringstream oss;
+    oss << "<" << size << " x " << elemType->name() << ">";
+    return oss.str();
+  }
 }; // class VectorType
 
 class FunctionType : public CompoundType {
@@ -135,7 +216,23 @@ public:
 
 protected:
   IType *returnType;
-  std::vector<IType *> args;
+  std::vector<IType *> argsTypes;
+
+public:
+  std::string name() const override {
+    std::ostringstream oss;
+    oss << returnType->name() << "(";
+    bool firstPrinted = false;
+    std::ranges::for_each(argsTypes, [firstPrinted, &oss](auto *type) mutable {
+      if (firstPrinted)
+        oss << ", ";
+      else
+        firstPrinted = true;
+      oss << type->name();
+    });
+    oss << ")";
+    return oss.str();
+  }
 }; // class FunctionType
 
 } // namespace wsheeet

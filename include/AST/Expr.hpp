@@ -18,12 +18,40 @@
 
 #pragma once
 
-namespace wsheeet {
+#include "TreeNode.hpp"
+
+#include <Type.hpp>
+
+#include <string>
+#include <string_view>
+
+namespace wsheeet::AST {
 
 class ExprBase {
 }; // class ExprBase
 
-class UnOpExpr : public ExprBase {
+class IdentifierNode : public ExprBase {
+  std::string symbol;
+
+public:
+  [[nodiscard]] std::string_view name() const { return symbol; }
+}; // class IdentifierNode
+
+template <concepts::SimpleType T>
+class ConstSimpleValueExpr : ExprBase {
+public:
+  using TypeTy = T;
+  using ValueTy = typename TypeTy::ValueTy;
+
+protected:
+  TypeTy type;
+  ValueTy value;
+
+public:
+  ConstSimpleValueExpr(const TypeTy &t, ValueTy v) : type{t}, value{v} {}
+}; // class ConstValueExpr
+
+class UnOpExpr : public virtual ExprBase, public virtual TreeNodeWParentAndCh <ExprBase, ExprBase> {
 }; // class UnOpExpr
 
 class UnPlusExpr : public UnOpExpr {
@@ -32,10 +60,22 @@ class UnPlusExpr : public UnOpExpr {
 class UnMinusExpr : public UnOpExpr {
 }; // class UnMinusExpr
 
-class BinOpExpr : public ExprBase {
+class BinOpExpr : public ExprBase, public TreeNodeWParentAnd2Ch<ExprBase, ExprBase> {
 }; // class BinOpExpr
+
+class BinPlusExpr : public BinOpExpr {
+}; // class BinPlusExpr
+
+class BinMinusExpr : public BinOpExpr {
+}; // class BinMinusExpr
+
+class BinMultExpr : public BinOpExpr {
+}; // class BinMultExpr
+
+class BinDivExpr : public BinOpExpr {
+}; // class BinDivExpr
 
 class ModifyExpr : public BinOpExpr {
 }; // class ModifyExpr
 
-} // namespace wsheeet
+} // namespace wsheeet::AST

@@ -38,3 +38,11 @@ endif()
 
 include_directories(include)
 add_subdirectory(lib)
+
+find_package(GTest)
+
+if(GTest_FOUND)
+  set(BUILD_TESTING ON)
+  enable_testing()
+  add_subdirectory(test)
+endif()
