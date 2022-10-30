@@ -1,2 +1,9 @@
-*build
+*build*
+*install*
+
+.cache/
+.vcsode/
+
+compile_commands.json
+
 hidden/
