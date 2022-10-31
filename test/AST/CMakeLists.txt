@@ -16,4 +16,12 @@
 # WSHEEET. If not, see <https://www.gnu.org/licenses/>.
 # ---------------------------------------------------------------------------- #
 
-add_subdirectory(AST)
+set(TESTS_LIST TreeNode)
+
+if(BUILD_TESTING)
+  foreach(TEST_NAME IN LISTS TESTS_LIST)
+    add_executable(${TEST_NAME} "${CMAKE_CURRENT_SOURCE_DIR}/${TEST_NAME}.cpp")
+    target_link_libraries(${TEST_NAME} gtest gtest_main)
+    add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
+  endforeach()
+endif()
