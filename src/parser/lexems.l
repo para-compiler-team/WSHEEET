@@ -1,7 +1,9 @@
+%option yyclass="Lexer"
 %option c++
 
 %{
 
+#include "lexer.hpp"
 #include "grammar.tab.hh"
 
 %}

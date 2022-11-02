@@ -7,7 +7,7 @@ int yyFlexLexer::yywrap() { return 1; }
 // int Lexer::yylex() { return 1; }
 
 int main() {
-    FlexLexer* lexer = new yyFlexLexer;
+    Lexer* lexer = new Lexer;
 #if 0
     while (lexer->yylex() != 0) {
         lexer->print_current();

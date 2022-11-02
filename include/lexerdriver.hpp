@@ -10,6 +10,7 @@
 
 #include "grammar.tab.hh"
 #include <FlexLexer.h>
+#include "lexer.hpp"
 
 #if 0
 class Lexer : public yyFlexLexer {
@@ -23,20 +24,19 @@ class Lexer : public yyFlexLexer {
     }
 
   public:
-    int yylex() override { return 1; }
+    int yylex() override;
     void print_current() const {
         std::cout << current_lexem << " <" << current_value << ">" << std::endl;
     }
 };
 #endif
-
 namespace yy {
 
 class LexerDriver {
-    FlexLexer *plex_;
+    Lexer *plex_;
 
   public:
-    LexerDriver(FlexLexer *plex) : plex_(plex) {}
+    LexerDriver(Lexer *plex) : plex_(plex) {}
 
     parser::token_type yylex(parser::semantic_type *yylval) {
         parser::token_type tt = static_cast<parser::token_type>(plex_->yylex());
