@@ -101,7 +101,7 @@ concept SimpleType = std::derived_from<T, wsheeet::SimpleType>;
 
 class CharType : public SimpleType {
 public:
-  using ValueTy = char;
+  using ValueTy = std::byte;
 
   bool isChar() const override { return true; }
 
@@ -114,9 +114,9 @@ public:
 
   bool isInt() const override { return true; }
 
-  std::string name() const override { return "int"; };
+  std::string name() const override { return std::string{"int"}.append(std::to_string(bitwidth)); };
 protected:
-  size_t bitwidth;
+  size_t bitwidth = 32;
 }; // class IntType
 
 class FloatType : public SimpleType {

@@ -18,37 +18,55 @@
 
 #pragma once
 
+#include "Expr.hpp"
+#include "Stmt.hpp"
 #include "TreeNode.hpp"
 
-#inlcude <DebugLoc.hpp>
-#include <Stmt.hpp>
-#include <Types/Type.h>
+#include <DebugLoc.hpp>
+#include <Type.hpp>
 
+#include <list>
 #include <string>
+#include <string_view>
 
 namespace wsheeet::AST {
 
-class Identifier : ITreeNode {};
+class IdentifierNode {
+  std::string symbol;
 
-class Scope : ITreeNode {};
+public:
+  [[nodiscard]] std::string_view name() const { return symbol; }
+}; // class IdentifierNode
 
 class IDecl {
 public:
-  virtual const std::string &getName() const = 0;
-  virtual DebugLoc &getLoc() const = 0;
+  virtual const std::string_view getName() const = 0;
 }; // class IDecl
 
-class FnDecl : public IDecl, public TreeNodeW2Ch<FunctionType, CompoundStmt> {
+class GlobalScope : public TreeNodeWCh<std::list<IDecl>> {
+public:
+  GlobalScope() = default;
+};
+
+using Scope = ITreeNode;
+
+template <concepts::Type T>
+class VarDecl
+    : public IDecl,
+      public TreeNodeWParentAnd2Ch<Scope, IdentifierNode, ModifyExpr> {
+}; // class VarDecl
+
+class FnDecl : public IDecl, public TreeNodeWParentAnd2Ch<Scope, IdentifierNode, CompoundStmt> {
 protected:
+    FunctionType *FT;
 
 public:
-  FnDecl(Scope &s, Identifier i) : TreeNodeWParentAnd2Ch<Scope, Identifier, CompoundStmt>(&s, i) {}
+  FnDecl(Scope *S, IdentifierNode *I, CompoundStmt *CStmt)
+      : TreeNodeWParentAnd2Ch<Scope, IdentifierNode, CompoundStmt>(S, I, CStmt) {}
+
+    const std::string_view getName() const override {
+      return left()->name();
+    }
 }; // class FnDecl
-
-class FnDef : public FnDecl {}; // class FnDef
-
-class VarDecl : public IDecl, public TreeNode {}; // class VarDecl
-
-class VarDef : public IDecl, public TreeNode {}; // class VarDef
 
 } // namespace wsheeet::AST

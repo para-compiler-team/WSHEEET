@@ -22,11 +22,15 @@
 
 #include <list>
 
-namespace wsheeet {
+namespace wsheeet::AST {
 
 class StmtBase {
   std::list<ExprBase> expressions;
 }; // class StmtBase
+
+class ExprStmt : public StmtBase {
+  ExprBase *expr;
+}; // class ExprStmt
 
 class CompoundStmt : public StmtBase {
   // we use here std::list instead std::vector to easy statements permutations
@@ -46,4 +50,4 @@ class ForStmt : public StmtBase {
 class WhileStmt : public StmtBase {
 }; // class WhileStmt
 
-} // namespace wsheeet
+} // namespace wsheeet::AST

@@ -30,13 +30,6 @@ namespace wsheeet::AST {
 class ExprBase {
 }; // class ExprBase
 
-class IdentifierNode : public ExprBase {
-  std::string symbol;
-
-public:
-  [[nodiscard]] std::string_view name() const { return symbol; }
-}; // class IdentifierNode
-
 template <concepts::SimpleType T>
 class ConstSimpleValueExpr : ExprBase {
 public:
@@ -44,12 +37,24 @@ public:
   using ValueTy = typename TypeTy::ValueTy;
 
 protected:
-  TypeTy type;
+  const TypeTy *type;
   ValueTy value;
 
 public:
-  ConstSimpleValueExpr(const TypeTy &t, ValueTy v) : type{t}, value{v} {}
+  ConstSimpleValueExpr(const TypeTy &t, ValueTy v) : type{&t}, value{v} {}
 }; // class ConstValueExpr
+
+class CharConstValueExpr : public ConstSimpleValueExpr<CharType> {
+}; // class CharConstValueExpr
+
+class IntConstValueExpr : public ConstSimpleValueExpr<IntType> {
+}; // class IntConstValueExpr
+
+class FloatConstValueExpr : public ConstSimpleValueExpr<FloatType> {
+}; // class FloatConstValueExpr
+
+class DoubleConstValueExpr : public ConstSimpleValueExpr<DoubleType> {
+}; // class DoubleConstValueExpr
 
 class UnOpExpr : public virtual ExprBase, public virtual TreeNodeWParentAndCh <ExprBase, ExprBase> {
 }; // class UnOpExpr
@@ -60,7 +65,7 @@ class UnPlusExpr : public UnOpExpr {
 class UnMinusExpr : public UnOpExpr {
 }; // class UnMinusExpr
 
-class BinOpExpr : public ExprBase, public TreeNodeWParentAnd2Ch<ExprBase, ExprBase> {
+class BinOpExpr : public ExprBase, public TreeNodeWParentAnd2Ch<ExprBase, ExprBase, ExprBase> {
 }; // class BinOpExpr
 
 class BinPlusExpr : public BinOpExpr {
