@@ -11,31 +11,12 @@
 #include "grammar.tab.hh"
 #include <FlexLexer.h>
 #include "lexer.hpp"
+#include <cstring>
 
-#if 0
-class Lexer : public yyFlexLexer {
-    std::string current_lexem{};
-    std::string current_value{};
-
-    int process_plus() {
-        current_lexem = "operator";
-        current_value = "+";
-        return 1;
-    }
-
-  public:
-    int yylex() override;
-    void print_current() const {
-        std::cout << current_lexem << " <" << current_value << ">" << std::endl;
-    }
-};
-#endif
 namespace yy {
 
 class LexerDriver {
     Lexer *plex_;
-
-    
 
   public:
     void hello_world() { std::cout << "hello world" << std::endl; }
@@ -45,6 +26,16 @@ class LexerDriver {
         parser::token_type tt = static_cast<parser::token_type>(plex_->yylex());
         if (tt == yy::parser::token_type::NUMBER)
             yylval->as<int>() = std::stoi(plex_->YYText());
+        else if (tt == yy::parser::token_type::VARNAME) {
+            char varname[1000] = "unknown_varname";
+            const char* var = strndup(plex_->YYText(), 1000);
+            if (var == nullptr) {
+                std::cerr << varname << "\n";
+            } else {
+                std::cerr << var << std::endl;
+            }
+            yylval->as<const char*>() = var;
+        }
         return tt;
     }
 

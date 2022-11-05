@@ -38,16 +38,24 @@ parser::token_type yylex(parser::semantic_type* yylval,
 }
 
 %token
-  EQUAL   //"="
-  MINUS   // "-"
-  PLUS    // "+"
-  SCOLON  // ";"
+  EQUAL
+  MINUS
+  PLUS
+  COLON
+  SCOLON
   ERR
+  EQ
+  NOTEQ
+  GE
+  LE
+  G
+  L
+  LINE_COMMENT
 ;
 
 %token <int> NUMBER
-%nterm <int> equals
-%nterm <int> expr
+%token <const char*> VARNAME
+%nterm <int> vardecl
 
 %left '+' '-'
 
@@ -58,22 +66,11 @@ parser::token_type yylex(parser::semantic_type* yylval,
 program: eqlist
 ;
 
-eqlist: equals SCOLON eqlist
-      | %empty
+eqlist : vardecl
+       | %empty
 ;
 
-equals: expr EQUAL expr       { 
-                                driver->hello_world();
-                                $$ = ($1 == $3); 
-                                std::cout << "Checking: " << $1 << " vs " << $3 
-                                          << "; Result: " << $$
-                                          << std::endl; 
-                              }
-;
-
-expr: expr PLUS NUMBER        { $$ = $1 + $3; }
-    | expr MINUS NUMBER       { $$ = $1 - $3; }
-    | NUMBER                  { $$ = $1; }
+vardecl: VARNAME COLON NUMBER { std::cout << ":" << "-" << strdup($1) << std::endl; }
 ;
 
 %%
@@ -86,5 +83,7 @@ parser::token_type yylex(parser::semantic_type* yylval,
   return driver->yylex(yylval);
 }
 
-void parser::error(const std::string&){}
+void parser::error(const std::string& msg){
+  std::cerr << "Bison parser error:    " << msg << "\n";
+}
 }
