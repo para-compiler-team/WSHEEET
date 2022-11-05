@@ -44,18 +44,35 @@ parser::token_type yylex(parser::semantic_type* yylval,
   COLON
   SCOLON
   ERR
+  
   EQ
   NOTEQ
   GE
   LE
   G
   L
+  
   LINE_COMMENT
+  
+  CHAR
+  INT
+  FLOAT
+  DOUBLE
+  EXTERN_INPUT
+
+  CURVED_BRACKET_LEFT
+  CURVED_BRACKET_RIGHT
+  SQUARE_BRACKET_LEFT
+  SQUARE_BRACKET_RIGHT
+  ROUND_BRACKET_LEFT
+  ROUND_BRACKET_RIGHT
 ;
 
 %token <int> NUMBER
 %token <const char*> VARNAME
 %nterm <int> vardecl
+%nterm vartype
+%nterm input
 
 %left '+' '-'
 
@@ -63,15 +80,33 @@ parser::token_type yylex(parser::semantic_type* yylval,
 
 %%
 
-program: eqlist
+program : statements
 ;
 
-eqlist : vardecl
-       | %empty
+scope : CURVED_BRACKET_LEFT statements CURVED_BRACKET_RIGHT
 ;
 
-vardecl: VARNAME COLON NUMBER { std::cout << ":" << "-" << strdup($1) << std::endl; }
+statements : vardecl
+           | %empty
 ;
+
+vardecl: VARNAME COLON vartype EQUAL input
+       | VARNAME COLON vartype { std::cout << strdup($1) << std::endl; }
+       | VARNAME EQUAL input
+;
+
+vartype:  CHAR
+       |  INT
+       |  FLOAT
+       |  DOUBLE
+       |  INT CURVED_BRACKET_LEFT NUMBER CURVED_BRACKET_RIGHT
+;
+
+input: NUMBER
+     | EXTERN_INPUT CURVED_BRACKET_LEFT NUMBER CURVED_BRACKET_RIGHT
+;
+
+
 
 %%
 

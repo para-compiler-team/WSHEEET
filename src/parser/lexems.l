@@ -34,15 +34,18 @@ DOUBLE  "double"
 {WS}              /* skip blanks and tabs */
 "+"               return process_plus();
 "-"               return process_minus();
-"="               return process_equal();
+"="               { set_lexem(yytext, yylineno); return process_equal(); }
 ";"               return process_scolon();
 ":"               { set_lexem(yytext, yylineno); return process_colon();}
-{DIGIT1}{DIGIT}*  return process_number();
+"\(|\)|\{|\}|\[|\]"     { set_lexem(yytext, yylineno); return process_brackets(yytext); }
+{DIGIT1}{DIGIT}*|"0"  { set_lexem(yytext, yylineno); return process_number(); }
+{CHAR}|{INT}|{FLOAT}|{DOUBLE} { set_lexem(yytext, yylineno); return process_typename(yytext); }
 ("=="|"!=")       { set_lexem(yytext, yylineno); return process_comp(yytext); }
 ("<="|">=")        { set_lexem(yytext, yylineno); return process_gele(yytext); }
 ("<"|">")         { set_lexem(yytext, yylineno); return process_gl(yytext); }
 {COMMENT}         { set_lexem(yytext, yylineno); return process_comment(); }
 {VAR}              { set_lexem(yytext, yylineno); return process_varname();}
+{INPUT}            {set_lexem(yytext, yylineno); return process_input();}
 .			      return process_error();
 
 %%

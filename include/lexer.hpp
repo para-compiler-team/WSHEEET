@@ -31,9 +31,7 @@ class Lexer : public yyFlexLexer {
         return yy::parser::token_type::EQUAL;
     }
 
-    token_type process_colon() {
-        return yy::parser::token_type::COLON;
-    }
+    token_type process_colon() { return yy::parser::token_type::COLON; }
 
     yy::parser::token_type process_scolon() {
         current_lexem = "operator";
@@ -41,9 +39,7 @@ class Lexer : public yyFlexLexer {
         return yy::parser::token_type::SCOLON;
     }
 
-    token_type process_varname() {
-        return token_type::VARNAME;
-    }
+    token_type process_varname() { return token_type::VARNAME; }
 
     yy::parser::token_type process_number() {
         current_lexem = "value";
@@ -60,45 +56,82 @@ class Lexer : public yyFlexLexer {
 
     void process_operand(const char *opnd) { std::cout << opnd << std::endl; }
 
-    void set_lexem(const char *lexem, int line) {}
+    token_type process_typename(const char *lexem) {
+        switch (lexem[0]) {
+        case 'c':
+            return token_type::CHAR;
+        case 'i':
+            return token_type::INT;
+        case 'f':
+            return token_type::FLOAT;
+        case 'd':
+            return token_type::DOUBLE;
+        default:
+            return token_type::ERR;
+        }
+    }
+
+    token_type process_brackets(const char *lexem) {
+        switch (lexem[0]) {
+        case '(':
+            return token_type::ROUND_BRACKET_LEFT;
+        case ')':
+            return token_type::ROUND_BRACKET_RIGHT;
+        case '{':
+            return token_type::CURVED_BRACKET_LEFT;
+        case '}':
+            return token_type::CURVED_BRACKET_RIGHT;
+        case '[':
+            return token_type::SQUARE_BRACKET_LEFT;
+        case ']':
+            return token_type::SQUARE_BRACKET_RIGHT;
+        default:
+            return token_type::ERR;
+        }
+    }
+
+    void set_lexem(const char *lexem, int line) {
+        std::cout << "Current lexem: " << lexem << std::endl;
+    }
 
     token_type process_comp(const char *lexem) {
-        switch(lexem[0]) {
-            case '!':
-                return token_type::NOTEQ;
-            case '=':
-                return token_type::EQ;
-            default:
-                return token_type::ERR;
+        switch (lexem[0]) {
+        case '!':
+            return token_type::NOTEQ;
+        case '=':
+            return token_type::EQ;
+        default:
+            return token_type::ERR;
         }
     }
 
     token_type process_gele(const char *lexem) {
-        switch(lexem[0]) {
-            case '<':
-                return token_type::LE;
-            case '>':
-                return token_type::GE;
-            default:
-                return token_type::ERR;
+        switch (lexem[0]) {
+        case '<':
+            return token_type::LE;
+        case '>':
+            return token_type::GE;
+        default:
+            return token_type::ERR;
         }
     }
 
     token_type process_gl(const char *lexem) {
-        switch(lexem[0]) {
-            case '<':
-                return token_type::L;
-            case '>':
-                return token_type::G;
-            default:
-                return token_type::ERR;
+        switch (lexem[0]) {
+        case '<':
+            return token_type::L;
+        case '>':
+            return token_type::G;
+        default:
+            return token_type::ERR;
         }
     }
 
-    token_type process_comment() {
-        return token_type::LINE_COMMENT;
+    token_type process_input() {
+        return token_type::EXTERN_INPUT;
     }
-    
+
+    token_type process_comment() { return token_type::LINE_COMMENT; }
 
   public:
     int yylex() override;

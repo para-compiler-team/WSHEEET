@@ -27,12 +27,10 @@ class LexerDriver {
         if (tt == yy::parser::token_type::NUMBER)
             yylval->as<int>() = std::stoi(plex_->YYText());
         else if (tt == yy::parser::token_type::VARNAME) {
-            char varname[1000] = "unknown_varname";
-            const char* var = strndup(plex_->YYText(), 1000);
+            const char* var = plex_->YYText();
             if (var == nullptr) {
-                std::cerr << varname << "\n";
-            } else {
-                std::cerr << var << std::endl;
+                std::cerr << "YYText error\n";
+                // return parser::token_type::ERR;
             }
             yylval->as<const char*>() = var;
         }
