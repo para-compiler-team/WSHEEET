@@ -35,7 +35,10 @@ namespace yy {
 class LexerDriver {
     Lexer *plex_;
 
+    
+
   public:
+    void hello_world() { std::cout << "hello world" << std::endl; }
     LexerDriver(Lexer *plex) : plex_(plex) {}
 
     parser::token_type yylex(parser::semantic_type *yylval) {

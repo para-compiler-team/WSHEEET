@@ -21,6 +21,7 @@ class Lexer : public yyFlexLexer {
     yy::parser::token_type process_minus() {
         current_lexem = "operator";
         current_value = "-";
+        std::cerr << "MINUS" << "\n";
         return yy::parser::token_type::MINUS;
     }
 

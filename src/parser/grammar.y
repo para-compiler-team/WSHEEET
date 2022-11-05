@@ -38,10 +38,10 @@ parser::token_type yylex(parser::semantic_type* yylval,
 }
 
 %token
-  EQUAL   "="
-  MINUS   "-"
-  PLUS    "+"
-  SCOLON  ";"
+  EQUAL   //"="
+  MINUS   // "-"
+  PLUS    // "+"
+  SCOLON  // ";"
   ERR
 ;
 
@@ -63,6 +63,7 @@ eqlist: equals SCOLON eqlist
 ;
 
 equals: expr EQUAL expr       { 
+                                driver->hello_world();
                                 $$ = ($1 == $3); 
                                 std::cout << "Checking: " << $1 << " vs " << $3 
                                           << "; Result: " << $$

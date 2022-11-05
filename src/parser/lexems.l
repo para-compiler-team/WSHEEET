@@ -11,7 +11,22 @@
 WS      [ \t\n\v]+
 DIGIT   [0-9]
 DIGIT1  [1-9]
-
+COMMENT \/\/.*$    
+LAYER   "layer"
+INPUT   "input"
+OUTPUT  "output"
+REPEAT  "repeat"
+GLUE    "glue"
+BIND    "bind"
+IF      "if"
+ELSE    "else"
+FOR     "for"
+IN      "in"
+RETURN  "return"
+CHAR    "char"
+INT     "int"
+FLOAT   "float"
+DOUBLE  "double"
 %%
 
 {WS}              /* skip blanks and tabs */
