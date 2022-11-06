@@ -47,9 +47,7 @@ class Lexer : public yyFlexLexer {
         return token_type::INT_NUMBER;
     }
 
-    token_type process_float() {
-        return token_type::FLOAT_NUMBER;
-    }
+    token_type process_float() { return token_type::FLOAT_NUMBER; }
 
     yy::parser::token_type process_error() {
         current_lexem = "debug";
@@ -131,13 +129,9 @@ class Lexer : public yyFlexLexer {
         }
     }
 
-    token_type process_input() {
-        return token_type::EXTERN_INPUT;
-    }
+    token_type process_input() { return token_type::EXTERN_INPUT; }
 
-    token_type process_comma() {
-        return token_type::COMMA;
-    }
+    token_type process_comma() { return token_type::COMMA; }
 
     token_type process_comment() { return token_type::LINE_COMMENT; }
 
@@ -148,6 +142,40 @@ class Lexer : public yyFlexLexer {
     token_type process_range() { return token_type::RANGE; }
 
     token_type process_char() { return token_type::CHAR; }
+
+    token_type process_condition(const char *lexem) {
+        switch (lexem[0]) {
+        case 'i':
+            return token_type::IF;
+        case 'e':
+            return token_type::ELSE;
+        case 'w':
+            return token_type::WHILE;
+        case 'f':
+            return token_type::FOR;
+        default:
+            return token_type::ERR;
+        }
+    }
+
+    token_type process_arithmetic_op(const char *lexem) {
+        switch (lexem[0]) {
+        case '+':
+            return token_type::PLUS;
+        case '-':
+            return token_type::MINUS;
+        case '*':
+            return token_type::MUL;
+        case '/':
+            return token_type::DIV;
+        case '&':
+            return token_type::AND;
+        case '|':
+            return token_type::OR;
+        default:
+            return token_type::ERR;
+        }
+    }
 
   public:
     int yylex() override;

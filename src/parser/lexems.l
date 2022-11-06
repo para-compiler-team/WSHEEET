@@ -12,7 +12,11 @@ WS      [ \t\n\v]+
 DIGIT   [0-9]
 DIGIT1  [1-9]
 COLON   ":"
-COMMENT \/\/(.*)$    
+COMMENT \/\/(.*)$  
+
+AND     "&&"  
+OR      "||"
+
 LAYER   "layer"
 INPUT   "input"
 OUTPUT  "output"
@@ -23,6 +27,7 @@ VECTOR  "vector"
 IF      "if"
 ELSE    "else"
 FOR     "for"
+WHILE   "while"
 IN      "in"
 RETURN  "return"
 CHAR    "char"
@@ -56,7 +61,9 @@ VAR_REGEX     [A-Za-z_\$]+[A-Za-z_\$0-9]*
 {CHAR}|{INT}|{FLOAT}|{DOUBLE} { set_lexem(yytext, yylineno); return process_typename(yytext); }
 {VECTOR}                        { set_lexem(yytext, yylineno); return process_vector(); }
 {REPEAT}                        { set_lexem(yytext, yylineno); return process_repeat(); }
+{IF}|{ELSE}|{WHILE}|{FOR}                            { set_lexem(yytext, yylineno); return process_condition(yytext); }
 {VAR_REGEX}              { set_lexem(yytext, yylineno); return process_varname(); }
+"+"|"-"|"/"|"*"|{AND}|{OR}                      { set_lexem(yytext, yylineno); return process_arithmetic_op(yytext); }                    
 .			      return process_error();
 
 %%
