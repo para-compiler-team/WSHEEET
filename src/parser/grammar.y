@@ -45,22 +45,26 @@ parser::token_type yylex(parser::semantic_type* yylval,
   COLON
   SCOLON
   COMMA
+  RANGE
   ERR
+
+  FLOAT_NUMBER
   
   EQ
   NOTEQ
   GE
   LE
-  G
-  L
+  G_BRACKET
+  L_BRACKET
   
   LINE_COMMENT
   
-  CHAR
   INT
   FLOAT
   DOUBLE
   EXTERN_INPUT
+  REPEAT
+  VECTOR
 
   CURVED_BRACKET_LEFT
   CURVED_BRACKET_RIGHT
@@ -70,8 +74,9 @@ parser::token_type yylex(parser::semantic_type* yylval,
   ROUND_BRACKET_RIGHT
 ;
 
-%token <int> NUMBER
+%token <int> INT_NUMBER
 %token <const char*> VARNAME
+%token <char> CHAR
 %nterm <int> var_decl
 %nterm var_type
 %nterm input
@@ -98,6 +103,7 @@ statements : %empty
 statement : DEBUG_TOKEN SCOLON
           | var_decl SCOLON
           | func_decl SCOLON
+          | array_decl SCOLON
 ;
 
 /*
@@ -125,7 +131,7 @@ Integer are two's complement signed numbers with two's complement signed wrap. N
 
 // var declarations
 var_decl : VARNAME COLON var_type EQUAL input
-         | VARNAME COLON var_type { std::cout << strdup($1) << std::endl; }
+         | VARNAME COLON var_type
          | VARNAME EQUAL input
 ;
 
@@ -135,16 +141,20 @@ basic_type :  CHAR
            |  DOUBLE
 ;
 
+basic_element : INT_NUMBER
+              | FLOAT_NUMBER
+              | CHAR
+
 var_type:  basic_type
-        |  INT ROUND_BRACKET_LEFT NUMBER ROUND_BRACKET_RIGHT
+        |  INT ROUND_BRACKET_LEFT INT_NUMBER ROUND_BRACKET_RIGHT
 ;
 
-input: NUMBER
+input: INT_NUMBER
      | extern_input
 ;
 
-extern_input : EXTERN_INPUT ROUND_BRACKET_LEFT NUMBER ROUND_BRACKET_RIGHT COLON basic_type
-             | EXTERN_INPUT ROUND_BRACKET_LEFT NUMBER ROUND_BRACKET_RIGHT
+extern_input : EXTERN_INPUT ROUND_BRACKET_LEFT INT_NUMBER ROUND_BRACKET_RIGHT COLON basic_type
+             | EXTERN_INPUT ROUND_BRACKET_LEFT INT_NUMBER ROUND_BRACKET_RIGHT
 ;
 
 /*
@@ -179,6 +189,37 @@ func_arg_decl : VARNAME COLON basic_type
               | VARNAME
 ;
 
+/*
+1.3. Arrays
+
+Array entity is syntactic glue for the couple of entities of the same type. Array have CT-known size.
+Special arryas are vectors. Vectors have both CT-known size and CT-known indexes.
+
+arr0 = repeat(v0, 5); // array of 5
+arr1 : int[5] = {1, 2, 3, 4}; // array of 5
+arr2 : vector<int, 5> = {1, 2, 3, 4, 5}; // vector
+v3 = 3;
+v4 = arr0[v3];
+v5 = arr2[3]; // not arr2[v3]
+arr_inputs = input(0..3) : int[4]; // array of 4
+*/
+
+// array declarations
+array_decl: VARNAME COLON array_type EQUAL array_body
+          | VARNAME EQUAL array_body
+
+array_type: array_basic_type
+          | array_vector_type
+
+array_basic_type : basic_type SQUARE_BRACKET_LEFT INT_NUMBER SQUARE_BRACKET_RIGHT 
+array_vector_type : VECTOR L_BRACKET basic_type COMMA INT_NUMBER G_BRACKET
+
+array_body : CURVED_BRACKET_LEFT array_list CURVED_BRACKET_RIGHT
+           | REPEAT ROUND_BRACKET_LEFT VARNAME COMMA INT_NUMBER ROUND_BRACKET_RIGHT
+           | EXTERN_INPUT ROUND_BRACKET_LEFT INT_NUMBER RANGE INT_NUMBER ROUND_BRACKET_RIGHT COLON array_basic_type 
+
+array_list : basic_element COMMA array_list
+           | basic_element
 %%
 
 namespace yy {

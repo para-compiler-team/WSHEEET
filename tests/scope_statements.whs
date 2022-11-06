@@ -10,3 +10,9 @@ f0 = { v3 = input(0); v3 = 0; };
 f1 : (x) = {  };
 f2 : (x, y) = {  };
 f3 : (x : int, y : double) : int = { v3 = 0; v2 : int; };
+
+arr0 = repeat(v0, 5);
+arr1 : int[5] = {1, 2, 3, 4};
+arr2 : vector<int, 5> = {1, 2, 3, 4, 5};
+v3 = 3;
+arr_inputs = input(0..3) : int[4];

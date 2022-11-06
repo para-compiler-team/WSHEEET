@@ -41,10 +41,14 @@ class Lexer : public yyFlexLexer {
 
     token_type process_varname() { return token_type::VARNAME; }
 
-    yy::parser::token_type process_number() {
+    token_type process_int() {
         current_lexem = "value";
         current_value = "number";
-        return yy::parser::token_type::NUMBER;
+        return token_type::INT_NUMBER;
+    }
+
+    token_type process_float() {
+        return token_type::FLOAT_NUMBER;
     }
 
     yy::parser::token_type process_error() {
@@ -119,9 +123,9 @@ class Lexer : public yyFlexLexer {
     token_type process_gl(const char *lexem) {
         switch (lexem[0]) {
         case '<':
-            return token_type::L;
+            return token_type::L_BRACKET;
         case '>':
-            return token_type::G;
+            return token_type::G_BRACKET;
         default:
             return token_type::ERR;
         }
@@ -136,6 +140,14 @@ class Lexer : public yyFlexLexer {
     }
 
     token_type process_comment() { return token_type::LINE_COMMENT; }
+
+    token_type process_vector() { return token_type::VECTOR; }
+
+    token_type process_repeat() { return token_type::REPEAT; }
+
+    token_type process_range() { return token_type::RANGE; }
+
+    token_type process_char() { return token_type::CHAR; }
 
   public:
     int yylex() override;
