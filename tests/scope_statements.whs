@@ -5,3 +5,8 @@ alex_great;
 alex_great;
 {alex_great;}
 {alex_great; {alex_great;}}
+
+f0 = { v3 = input(0); v3 = 0; };
+f1 : (x) = {  };
+f2 : (x, y) = {  };
+f3 : (x : int, y : double) : int = { v3 = 0; v2 : int; };
