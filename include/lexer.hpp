@@ -131,6 +131,10 @@ class Lexer : public yyFlexLexer {
         return token_type::EXTERN_INPUT;
     }
 
+    token_type process_comma() {
+        return token_type::COMMA;
+    }
+
     token_type process_comment() { return token_type::LINE_COMMENT; }
 
   public:

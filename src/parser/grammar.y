@@ -38,11 +38,13 @@ parser::token_type yylex(parser::semantic_type* yylval,
 }
 
 %token
+  DEBUG_TOKEN "alex_great"
   EQUAL
   MINUS
   PLUS
   COLON
   SCOLON
+  COMMA
   ERR
   
   EQ
@@ -70,8 +72,8 @@ parser::token_type yylex(parser::semantic_type* yylval,
 
 %token <int> NUMBER
 %token <const char*> VARNAME
-%nterm <int> vardecl
-%nterm vartype
+%nterm <int> var_decl
+%nterm var_type
 %nterm input
 
 %left '+' '-'
@@ -83,22 +85,32 @@ parser::token_type yylex(parser::semantic_type* yylval,
 program : statements
 ;
 
-scope : CURVED_BRACKET_LEFT statements CURVED_BRACKET_RIGHT
+/* scope & statements */
+scope : CURVED_BRACKET_LEFT statements CURVED_BRACKET_RIGHT statements
 ;
 
-statements : vardecl
-           | %empty
+statements : %empty
+           | statement statements
+           | scope
 ;
 
-vardecl: VARNAME COLON vartype EQUAL input
-       | VARNAME COLON vartype { std::cout << strdup($1) << std::endl; }
+statement : DEBUG_TOKEN SCOLON
+;
+
+/*
+// var declarations
+var_decl: VARNAME COLON var_type EQUAL input
+       | VARNAME COLON var_type { std::cout << strdup($1) << std::endl; }
        | VARNAME EQUAL input
 ;
 
-vartype:  CHAR
-       |  INT
-       |  FLOAT
-       |  DOUBLE
+basic_type :  CHAR
+           |  INT
+           |  FLOAT
+           |  DOUBLE
+;
+
+var_type:  basic_type
        |  INT CURVED_BRACKET_LEFT NUMBER CURVED_BRACKET_RIGHT
 ;
 
@@ -106,7 +118,24 @@ input: NUMBER
      | EXTERN_INPUT CURVED_BRACKET_LEFT NUMBER CURVED_BRACKET_RIGHT
 ;
 
+// function declarations
+func_decl : func_args_decl EQUAL scope SCOLON
+;
 
+func_args_decl : %empty
+               | COLON ROUND_BRACKET_LEFT func_args_decl_list ROUND_BRACKET_RIGHT COLON basic_type
+               | COLON ROUND_BRACKET_LEFT func_args_decl_list ROUND_BRACKET_RIGHT
+;
+
+func_args_decl_list : func_arg_decl
+                    | func_arg_decl COMMA func_args_decl_list
+;
+
+func_arg_decl : VARNAME COLON basic_type
+              | VARNAME
+;
+
+*/
 
 %%
 

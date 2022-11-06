@@ -29,23 +29,26 @@ CHAR    "char"
 INT     "int"
 FLOAT   "float"
 DOUBLE  "double"
+DEBUG_TOKEN "alex_great"
 %%
 
 {WS}              /* skip blanks and tabs */
 "+"               return process_plus();
 "-"               return process_minus();
 "="               { set_lexem(yytext, yylineno); return process_equal(); }
-";"               return process_scolon();
-":"               { set_lexem(yytext, yylineno); return process_colon();}
-"\(|\)|\{|\}|\[|\]"     { set_lexem(yytext, yylineno); return process_brackets(yytext); }
+";"               { set_lexem(yytext, yylineno); return process_scolon(); }
+":"               { set_lexem(yytext, yylineno); return process_colon(); }
+","               { set_lexem(yytext, yylineno); return process_comma(); }
+\(|\)|\{|\}|\[|\]     { set_lexem(yytext, yylineno); return process_brackets(yytext); }
 {DIGIT1}{DIGIT}*|"0"  { set_lexem(yytext, yylineno); return process_number(); }
-{CHAR}|{INT}|{FLOAT}|{DOUBLE} { set_lexem(yytext, yylineno); return process_typename(yytext); }
 ("=="|"!=")       { set_lexem(yytext, yylineno); return process_comp(yytext); }
 ("<="|">=")        { set_lexem(yytext, yylineno); return process_gele(yytext); }
 ("<"|">")         { set_lexem(yytext, yylineno); return process_gl(yytext); }
 {COMMENT}         { set_lexem(yytext, yylineno); return process_comment(); }
-{VAR}              { set_lexem(yytext, yylineno); return process_varname();}
 {INPUT}            {set_lexem(yytext, yylineno); return process_input();}
+{DEBUG_TOKEN}       {set_lexem(yytext, yylineno); return yy::parser::token_type::DEBUG_TOKEN; }
+{CHAR}|{INT}|{FLOAT}|{DOUBLE} { set_lexem(yytext, yylineno); return process_typename(yytext); }
+{VAR}              { set_lexem(yytext, yylineno); return process_varname();}
 .			      return process_error();
 
 %%
