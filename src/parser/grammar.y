@@ -90,7 +90,9 @@ parser::token_type yylex(parser::semantic_type* yylval,
 %nterm var_type
 %nterm input
 
-%left '+' '-'
+%left PLUS MINUS
+%left MUL DIV
+%left NEG
 
 %start program
 
@@ -120,8 +122,10 @@ statement : DEBUG_TOKEN SCOLON
           | if_statement
           | else_statement
           | while_statement
+          | right_expression SCOLON
 ;
 
+// basic types & elements
 basic_type :  CHAR
            |  INT
            |  FLOAT
@@ -138,25 +142,33 @@ basic_element : INT_NUMBER
 ;
 
 // expressions
-/*
-expression: arithmetic_expression
+right_expression: arithmetic_expression
 ;
 
+/*
 arithmetic_operator: MUL
                    | DIV
                    | PLUS
                    | MINUS
 ;
 
-arithmetic_expression: element arithmetic_operator arithmetic_expression
-                     | arithmetic_scope
-;
 arithmetic_scope: ROUND_BRACKET_LEFT arithmetic_expression ROUND_BRACKET_RIGHT
+;
+
+arithmetic_expression: element
+                     | arithmetic_expression arithmetic_operator element
+                     | arithmetic_scope
 ;
 */
 
-
-
+arithmetic_expression: element
+| arithmetic_expression PLUS arithmetic_expression
+| arithmetic_expression MINUS arithmetic_expression
+| arithmetic_expression MUL arithmetic_expression
+| arithmetic_expression DIV arithmetic_expression
+| MINUS arithmetic_expression %prec NEG
+| ROUND_BRACKET_LEFT arithmetic_expression ROUND_BRACKET_RIGHT
+;
 
 /*
 1.2. Types

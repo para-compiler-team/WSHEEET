@@ -36,7 +36,7 @@ FLOAT   "float"
 DOUBLE  "double"
 DEBUG_TOKEN "alex_great"
 
-INT_REGEX (\+|\-)?{DIGIT1}{DIGIT}*|"0"
+INT_REGEX {DIGIT1}{DIGIT}*|"0"
 FLOAT_REGEX \b(\+|\-)?({DIGIT}{DIGIT1}*|{DIGIT1}{DIGIT}*)\.{DIGIT}*
 CHAR_REGEX \'.\'
 VAR_REGEX     [A-Za-z_\$]+[A-Za-z_\$0-9]*
