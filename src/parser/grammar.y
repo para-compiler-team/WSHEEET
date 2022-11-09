@@ -49,6 +49,7 @@ parser::token_type yylex(parser::semantic_type* yylval,
   COLON
   SCOLON
   COMMA
+  DOT
   RANGE
   ERR
 
@@ -304,6 +305,15 @@ array_list : basic_rval COMMA array_list
 
 // structures
 /*
+struct_field : VARNAME DOT VARNAME
+struct_lval : VARNAME struct_args_decl
+            | VARNAME
+;
+
+struct_rval : struct_body
+            | glue_rval
+            */
+/*
 struct_decl : VARNAME struct_args_decl EQUAL struct_body
           | VARNAME EQUAL struct_body
 ;
@@ -317,7 +327,7 @@ struct_args_decl_list : struct_arg_decl
 ;
 
 struct_arg_decl : VARNAME COLON basic_type
-              | VARNAME
+                | VARNAME
 ;
 */
 // conditions
