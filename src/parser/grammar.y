@@ -73,6 +73,7 @@ parser::token_type yylex(parser::semantic_type* yylval,
   DOUBLE
   EXTERN_INPUT
   REPEAT
+  GLUE
   VECTOR
 
   CURVED_BRACKET_LEFT
@@ -86,9 +87,6 @@ parser::token_type yylex(parser::semantic_type* yylval,
 %token <int> INT_NUMBER
 %token <const char*> VARNAME
 %token <char> CHAR
-%nterm <int> var_decl
-%nterm var_type
-%nterm input
 
 %left PLUS MINUS
 %left MUL DIV
@@ -116,13 +114,15 @@ statements : %empty
 ;
 
 statement : DEBUG_TOKEN SCOLON
-          | var_decl SCOLON
+          | var_lval SCOLON
           | func_decl SCOLON
           | array_decl SCOLON
+          | array_elem_lval SCOLON
           | if_statement
           | else_statement
           | while_statement
-          | right_expression SCOLON
+          | VARNAME EQUAL glue_rval SCOLON
+         // | right_expression SCOLON
 ;
 
 // basic types & elements
@@ -132,13 +132,19 @@ basic_type :  CHAR
            |  DOUBLE
 ;
 
-element : basic_element
+rval : basic_rval
         | VARNAME
+        | VARNAME SQUARE_BRACKET_LEFT right_expression SQUARE_BRACKET_RIGHT
+        | VARNAME ROUND_BRACKET_LEFT right_expression ROUND_BRACKET_RIGHT
 ;
 
-basic_element : INT_NUMBER
+basic_rval : INT_NUMBER
               | FLOAT_NUMBER
               | CHAR
+;
+
+extern_input_single : EXTERN_INPUT ROUND_BRACKET_LEFT INT_NUMBER ROUND_BRACKET_RIGHT COLON basic_type
+                    | EXTERN_INPUT ROUND_BRACKET_LEFT INT_NUMBER ROUND_BRACKET_RIGHT
 ;
 
 // expressions
@@ -155,13 +161,13 @@ arithmetic_operator: MUL
 arithmetic_scope: ROUND_BRACKET_LEFT arithmetic_expression ROUND_BRACKET_RIGHT
 ;
 
-arithmetic_expression: element
-                     | arithmetic_expression arithmetic_operator element
+arithmetic_expression: rval
+                     | arithmetic_expression arithmetic_operator rval
                      | arithmetic_scope
 ;
 */
 
-arithmetic_expression: element
+arithmetic_expression: rval
 | arithmetic_expression PLUS arithmetic_expression
 | arithmetic_expression MINUS arithmetic_expression
 | arithmetic_expression MUL arithmetic_expression
@@ -194,22 +200,17 @@ Integer are two's complement signed numbers with two's complement signed wrap. N
 */
 
 // var declarations
-var_decl : VARNAME COLON var_type EQUAL input
+var_lval : VARNAME COLON var_type EQUAL right_expression
          | VARNAME COLON var_type
-         | VARNAME EQUAL input
+         | VARNAME EQUAL extern_input_single
+         // | VARNAME EQUAL rval SCOLON
 ;
 
 var_type:  basic_type
         |  INT ROUND_BRACKET_LEFT INT_NUMBER ROUND_BRACKET_RIGHT
 ;
 
-input: INT_NUMBER
-     | extern_input
-;
 
-extern_input : EXTERN_INPUT ROUND_BRACKET_LEFT INT_NUMBER ROUND_BRACKET_RIGHT COLON basic_type
-             | EXTERN_INPUT ROUND_BRACKET_LEFT INT_NUMBER ROUND_BRACKET_RIGHT
-;
 
 /*
 1.5. Functions
@@ -243,6 +244,21 @@ func_arg_decl : VARNAME COLON basic_type
               | VARNAME
 ;
 
+// glue & repeat
+glue_rval : GLUE glue_args_decl
+;
+
+glue_args_decl: ROUND_BRACKET_LEFT glue_args_decl_list ROUND_BRACKET_RIGHT
+;
+
+glue_args_decl_list : glue_arg_decl
+                    | glue_arg_decl COMMA glue_args_decl_list
+;
+
+glue_arg_decl : right_expression COLON VARNAME
+              | right_expression
+;
+
 /*
 1.3. Arrays
 
@@ -263,6 +279,10 @@ array_decl: VARNAME COLON array_type EQUAL array_body
           | VARNAME EQUAL array_body
 ;
 
+array_elem_lval : VARNAME SQUARE_BRACKET_LEFT INT_NUMBER SQUARE_BRACKET_RIGHT EQUAL right_expression
+                | VARNAME SQUARE_BRACKET_LEFT INT_NUMBER SQUARE_BRACKET_RIGHT EQUAL extern_input_single
+;
+
 array_type: array_basic_type
           | array_vector_type
 ;
@@ -278,10 +298,28 @@ array_body : CURVED_BRACKET_LEFT array_list CURVED_BRACKET_RIGHT
            | EXTERN_INPUT ROUND_BRACKET_LEFT INT_NUMBER RANGE INT_NUMBER ROUND_BRACKET_RIGHT COLON array_basic_type 
 ;
 
-array_list : basic_element COMMA array_list
-           | basic_element
+array_list : basic_rval COMMA array_list
+           | basic_rval
 ;
 
+// structures
+/*
+struct_decl : VARNAME struct_args_decl EQUAL struct_body
+          | VARNAME EQUAL struct_body
+;
+
+struct_args_decl : COLON SQUARE_BRACKET_LEFT struct_args_decl_list SQUARE_BRACKET_RIGHT COLON basic_type
+               | COLON ROUND_BRACKET_LEFT struct_args_decl_list ROUND_BRACKET_RIGHT
+;
+
+struct_args_decl_list : struct_arg_decl
+                    | struct_arg_decl COMMA struct_args_decl_list
+;
+
+struct_arg_decl : VARNAME COLON basic_type
+              | VARNAME
+;
+*/
 // conditions
 
 if_statement: IF ROUND_BRACKET_LEFT conditions ROUND_BRACKET_RIGHT condition_body
@@ -293,8 +331,8 @@ else_statement: ELSE condition_body
 
 while_statement : WHILE ROUND_BRACKET_LEFT conditions ROUND_BRACKET_RIGHT condition_body
 
-conditions : element 
-           | element condition_operator conditions
+conditions : rval 
+           | rval condition_operator conditions
            | conditional_scope
 ;
 

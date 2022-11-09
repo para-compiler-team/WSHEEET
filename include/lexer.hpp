@@ -107,6 +107,10 @@ class Lexer : public yyFlexLexer {
         }
     }
 
+    token_type process_glue() {
+        return token_type::GLUE;
+    }
+
     token_type process_gele(const char *lexem) {
         switch (lexem[0]) {
         case '<':
