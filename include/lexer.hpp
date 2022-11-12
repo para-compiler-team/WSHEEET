@@ -107,13 +107,11 @@ class Lexer : public yyFlexLexer {
         }
     }
 
-    token_type process_glue() {
-        return token_type::GLUE;
-    }
+    token_type process_glue() { return token_type::GLUE; }
 
-    token_type process_dot() {
-        return token_type::DOT;
-    }
+    token_type process_dot() { return token_type::DOT; }
+
+    token_type process_return() { return token_type::RETURN; }
 
     token_type process_gele(const char *lexem) {
         switch (lexem[0]) {
@@ -136,6 +134,8 @@ class Lexer : public yyFlexLexer {
             return token_type::ERR;
         }
     }
+
+    token_type process_bind() { return token_type::BIND; }
 
     token_type process_input() { return token_type::EXTERN_INPUT; }
 

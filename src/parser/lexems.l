@@ -62,6 +62,8 @@ VAR_REGEX     [A-Za-z_\$]+[A-Za-z_\$0-9]*
 {VECTOR}                        { set_lexem(yytext, yylineno); return process_vector(); }
 {REPEAT}                        { set_lexem(yytext, yylineno); return process_repeat(); }
 {GLUE}                          { set_lexem(yytext, yylineno); return process_glue(); }
+{BIND}                          { set_lexem(yytext, yylineno); return process_bind(); }
+{RETURN}                        {set_lexem(yytext, yylineno); return process_return(); }
 {IF}|{ELSE}|{WHILE}|{FOR}                            { set_lexem(yytext, yylineno); return process_condition(yytext); }
 {VAR_REGEX}              { set_lexem(yytext, yylineno); return process_varname(); }
 "+"|"-"|"/"|"*"|{AND}|{OR}                      { set_lexem(yytext, yylineno); return process_arithmetic_op(yytext); }

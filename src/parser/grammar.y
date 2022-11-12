@@ -75,6 +75,8 @@ parser::token_type yylex(parser::semantic_type* yylval,
   EXTERN_INPUT
   REPEAT
   GLUE
+  BIND
+  RETURN
   VECTOR
 
   CURVED_BRACKET_LEFT
@@ -101,8 +103,6 @@ program : statements
 ;
 
 /* scope & statements */
-func_body : CURVED_BRACKET_LEFT statements CURVED_BRACKET_RIGHT
-;
 scope : CURVED_BRACKET_LEFT statements CURVED_BRACKET_RIGHT statements
 ;
 single_scope : CURVED_BRACKET_LEFT statements CURVED_BRACKET_RIGHT
@@ -122,26 +122,34 @@ statement : DEBUG_TOKEN SCOLON
           | if_statement
           | else_statement
           | while_statement
-          | VARNAME EQUAL glue_rval SCOLON
-         // | right_expression SCOLON
+          | return_statement SCOLON
+          | struct_decl
 ;
 
 // basic types & elements
 basic_type :  CHAR
-           |  INT
-           |  FLOAT
+           |  INT_NUMBER
+           |  FLOAT_NUMBER
            |  DOUBLE
+;
+
+lval :    VARNAME
+        | VARNAME SQUARE_BRACKET_LEFT right_expression SQUARE_BRACKET_RIGHT
+        | func_usage_rval
+        | struct_field_rval
 ;
 
 rval : basic_rval
         | VARNAME
         | VARNAME SQUARE_BRACKET_LEFT right_expression SQUARE_BRACKET_RIGHT
-        | VARNAME ROUND_BRACKET_LEFT right_expression ROUND_BRACKET_RIGHT
+        | func_usage_rval
+        | struct_field_rval
 ;
 
 basic_rval : INT_NUMBER
-              | FLOAT_NUMBER
-              | CHAR
+           | FLOAT_NUMBER
+           | CHAR
+           | DOUBLE
 ;
 
 extern_input_single : EXTERN_INPUT ROUND_BRACKET_LEFT INT_NUMBER ROUND_BRACKET_RIGHT COLON basic_type
@@ -204,8 +212,10 @@ Integer are two's complement signed numbers with two's complement signed wrap. N
 var_lval : VARNAME COLON var_type EQUAL right_expression
          | VARNAME COLON var_type
          | VARNAME EQUAL extern_input_single
-         // | VARNAME EQUAL rval SCOLON
+         | VARNAME EQUAL right_expression
 ;
+
+
 
 var_type:  basic_type
         |  INT ROUND_BRACKET_LEFT INT_NUMBER ROUND_BRACKET_RIGHT
@@ -233,6 +243,9 @@ func_decl : VARNAME func_args_decl EQUAL func_body
           | VARNAME EQUAL func_body
 ;
 
+func_body : CURVED_BRACKET_LEFT statements CURVED_BRACKET_RIGHT
+;
+
 func_args_decl : COLON ROUND_BRACKET_LEFT func_args_decl_list ROUND_BRACKET_RIGHT COLON basic_type
                | COLON ROUND_BRACKET_LEFT func_args_decl_list ROUND_BRACKET_RIGHT
 ;
@@ -245,7 +258,26 @@ func_arg_decl : VARNAME COLON basic_type
               | VARNAME
 ;
 
-// glue & repeat
+// function usage
+func_usage_rval : VARNAME ROUND_BRACKET_LEFT func_args_usage_list ROUND_BRACKET_RIGHT
+;
+
+func_args_usage_list : func_arg_usage
+                     | func_arg_usage COMMA func_args_usage_list
+                     | %empty
+;
+
+func_arg_usage : func_arg_usage_expression
+;
+
+func_arg_usage_expression : right_expression
+;
+
+// return statement
+return_statement : RETURN right_expression
+
+// builtin statements
+// glue
 glue_rval : GLUE glue_args_decl
 ;
 
@@ -256,9 +288,23 @@ glue_args_decl_list : glue_arg_decl
                     | glue_arg_decl COMMA glue_args_decl_list
 ;
 
-glue_arg_decl : right_expression COLON VARNAME
-              | right_expression
+glue_right_expression : right_expression
+                      | bind_rval
 ;
+
+glue_arg_decl : glue_right_expression COLON VARNAME
+              | glue_right_expression
+;
+
+// bind
+bind_rval : BIND ROUND_BRACKET_LEFT VARNAME COMMA struct_fields_list ROUND_BRACKET_RIGHT
+          | BIND ROUND_BRACKET_LEFT VARNAME ROUND_BRACKET_RIGHT
+;
+
+
+
+struct_fields_list: struct_field_lval
+                  | struct_field_lval COMMA struct_fields_list
 
 /*
 1.3. Arrays
@@ -304,22 +350,18 @@ array_list : basic_rval COMMA array_list
 ;
 
 // structures
-/*
-struct_field : VARNAME DOT VARNAME
-struct_lval : VARNAME struct_args_decl
-            | VARNAME
+
+struct_field_lval : VARNAME DOT VARNAME
+struct_field_rval : VARNAME DOT VARNAME
+
+struct_decl_rval : glue_rval
+
+struct_decl : VARNAME struct_args_decl EQUAL struct_decl_rval
+            | VARNAME struct_args_decl
+            | VARNAME EQUAL struct_decl_rval
 ;
 
-struct_rval : struct_body
-            | glue_rval
-            */
-/*
-struct_decl : VARNAME struct_args_decl EQUAL struct_body
-          | VARNAME EQUAL struct_body
-;
-
-struct_args_decl : COLON SQUARE_BRACKET_LEFT struct_args_decl_list SQUARE_BRACKET_RIGHT COLON basic_type
-               | COLON ROUND_BRACKET_LEFT struct_args_decl_list ROUND_BRACKET_RIGHT
+struct_args_decl : COLON CURVED_BRACKET_LEFT struct_args_decl_list CURVED_BRACKET_RIGHT
 ;
 
 struct_args_decl_list : struct_arg_decl
@@ -327,9 +369,12 @@ struct_args_decl_list : struct_arg_decl
 ;
 
 struct_arg_decl : VARNAME COLON basic_type
-                | VARNAME
+                | VARNAME COLON array_basic_type
+                | VARNAME COLON func_args_decl
 ;
-*/
+
+
+
 // conditions
 
 if_statement: IF ROUND_BRACKET_LEFT conditions ROUND_BRACKET_RIGHT condition_body
