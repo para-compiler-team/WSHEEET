@@ -1,0 +1,91 @@
+//para-lexer:
+
+left_square: [
+right_square: ]
+left_paren: (
+right_paren: )
+left_scope: {
+right_scope: }
+colon: :
+semicolon: ;
+comma: ,
+fullstop: .
+plus: +
+minus: -
+mul: *
+div: /
+rem: %
+assign: =
+equal: ==
+not_equal: !=
+less: <
+less_equal: <=
+more: >
+more_equal: >=
+
+identifier: [_a-zA-Z]+[_0-9a-zA-Z]*
+
+
+
+//para-parser:
+
+type: char_type | int_type | float_type | double_type | structure_type | function_type
+char_type: char_keyword
+int_type: int_keyword [ left_paren int_literal right_paren ]
+float_type: float_keyword
+double_type: double_keyword
+structure_type: left_scope ( identifier [ colon type ] )+ right_scope
+structure_type: left_paren ( identifier [ colon type ] )* right_paren [ colon type]
+
+layer: full_layer | shortcut_layer
+
+full_layer: layer_keyword left_paren int_literal [ , string_literal ] right_paren compound_stmt
+
+shortcut_layer: ( stmt )+
+
+stmt: expr_stmt | compound_stmt | return_stmt | if_stmt | if_else_stmt | for_stmt | while_stmt
+
+expr_stmt: expr semicolon
+
+return_stmt: return_keyword expr semicolon
+
+compound_stmt: left_scope ( stmt )* right_scope
+
+cf_stmt: expr_stmt | compound_stmt
+
+if_stmt: if_keyword left_paren expr right_paren cf_stmt
+
+if_else_stmt: if_keyword left_paren expr right_paren cf_stmt else_keyword cf_stmt
+
+for_stmt: for_keyword left_paren identifier in_keyword expr right_paren cf_stmt
+
+while_stmt: while_keyword left_paren expr right_paren cf_stmt
+
+expr: ( identifier | operator_expr | function_call_expr | elem_access_expr | builtin_expr | range_expr ) colon type
+
+operator_expr: unary_operator_expr | binary_operator_expr
+
+unary_operator_expr: unary_op expr
+unary_op: plus | minus
+
+binary_operator_expr: expr binary_op expr // I think we will distinguish lvalue and rvalue in sema
+binary_op: assign | plus | minus | mul | div | rem | cmp_op
+cmp_op: not_equal | equal | less | more | less_equal | more_equal
+
+function_call_expr: expr left_paren [ arg_list ] right_paren compound_stmt
+
+arg_list: expr ( comma expr )*
+
+elem_access_expr: unnamed_elem_access_expr | named_elem_access_expr
+unnamed_elem_access_expr: expr left_square expr right_square
+named_elem_access_expr: expr fullstop identifier
+
+builtin_expr: input_expr | output_expr | repeat_expr | glue_expr | bind_expr
+input_expr: input_keyword left_paren expr right_paren
+output_expr: output_keyword left_paren expr comma expr right_paren
+repeat_expr: repeat_keyword left_paren expr comma expr right_paren
+glue_expr: glue_keyword left_paren expr ( comma glue_decl )* right_paren
+glue_decl: expr [ colon identifier ]
+bind_expr: bind_keyword left_paren identifier ( comma named_elem_access_expr )* right_paren
+
+range_expr: expr colon expr [ colon expr ]
