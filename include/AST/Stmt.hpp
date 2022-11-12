@@ -19,35 +19,33 @@
 #pragma once
 
 #include "Expr.hpp"
-
-#include <list>
+#include "TreeNode.hpp"
 
 namespace wsheeet::AST {
 
-class StmtBase {
-  std::list<ExprBase> expressions;
-}; // class StmtBase
+class IStmt : public ExprParent {}; // class StmtBase
 
-class ExprStmt : public StmtBase {
-  ExprBase *expr;
-}; // class ExprStmt
+class ExprStmt : public IStmt,
+                 public TreeNodeWParentAndCh<Scope, Expr> {}; // class ExprStmt
 
-class CompoundStmt : public StmtBase {
-  // we use here std::list instead std::vector to easy statements permutations
-  std::list<StmtBase> nestedStmts;
+class CompoundStmt : public ITreeNode,
+                     public TreeNodeWParentAndCh<Scope, List<IStmt>> {
 }; // class CompoundStmt
 
-class IfStmt : public StmtBase {
+class IfStmt : public IStmt,
+               public TreeNodeWParentAnd2Ch<Scope, IStmt, IStmt> {
 }; // class IfStmt
 
-class ForStmt : public StmtBase {
-  StmtBase *initStmt;
-  StmtBase *cond;
-  StmtBase *expr;
-  StmtBase *body;
+class ForStmt : public IStmt,
+                public TreeNodeWParentAnd3Ch<Scope, DeclRefExpr, Expr, IStmt> {
 }; // class ForStmt
 
-class WhileStmt : public StmtBase {
+class WhileStmt : public IStmt,
+                  public TreeNodeWParentAnd2Ch<Scope, Expr, IStmt> {
 }; // class WhileStmt
+
+class ReturnStmt : public IStmt,
+                   public TreeNodeWParentAndCh<Scope, Expr> {
+}; // class ReturnStmt
 
 } // namespace wsheeet::AST

@@ -20,6 +20,7 @@
 
 #include "Expr.hpp"
 #include "Stmt.hpp"
+#include "SymbolTable.hpp"
 #include "TreeNode.hpp"
 
 #include <DebugLoc.hpp>
@@ -31,42 +32,35 @@
 
 namespace wsheeet::AST {
 
-class IdentifierNode {
-  std::string symbol;
-
+class IStmt;
+class DeclStmt : public IStmt {
 public:
-  [[nodiscard]] std::string_view name() const { return symbol; }
-}; // class IdentifierNode
-
-class IDecl {
-public:
-  virtual const std::string_view getName() const = 0;
+  [[nodiscard]] virtual std::string_view name() const = 0;
 }; // class IDecl
 
-class GlobalScope : public TreeNodeWCh<std::list<IDecl>> {
+class GlobalScope : public TreeNodeWCh<IStmt> {
 public:
   GlobalScope() = default;
 };
 
-using Scope = ITreeNode;
+class GlueDecl {
+}; // class GlueDecl
 
 template <concepts::Type T>
 class VarDecl
-    : public IDecl,
-      public TreeNodeWParentAnd2Ch<Scope, IdentifierNode, ModifyExpr> {
+    : public IDeclStmt,
+      public TreeNodeWParentAnd2Ch<Scope, DeclRefExpr, Expr> {
 }; // class VarDecl
 
-class FnDecl : public IDecl, public TreeNodeWParentAnd2Ch<Scope, IdentifierNode, CompoundStmt> {
+class FunctionDecl
+    : public IDeclStmt,
+      public TreeNodeWParentAnd2Ch<Scope, DeclRefExpr, CompoundStmt> {
 protected:
-    FunctionType *FT;
-
 public:
-  FnDecl(Scope *S, IdentifierNode *I, CompoundStmt *CStmt)
-      : TreeNodeWParentAnd2Ch<Scope, IdentifierNode, CompoundStmt>(S, I, CStmt) {}
+  FunctionDecl(Scope &S, DeclRefExpr &I, CompoundStmt &CStmt)
+      : TreeNodeWParentAnd2Ch<Scope, DeclRefExpr, CompoundStmt>(&S, &I, &CStmt) {}
 
-    const std::string_view getName() const override {
-      return left()->name();
-    }
+  [[nodiscard]] std::string_view name() const override { return left()->name(); }
 }; // class FnDecl
 
 } // namespace wsheeet::AST

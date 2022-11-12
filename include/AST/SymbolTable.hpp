@@ -16,20 +16,12 @@
 // WSHEET. If not, see <https://www.gnu.org/licenses/>.
 // -------------------------------------------------------------------------- //
 
-#include <AST/Decl.hpp>
-#include <AST/Expr.hpp>
-#include <AST/Stmt.hpp>
-#include <Type.hpp>
+#pragma once
 
-#include <gtest/gtest.h>
+namespace wsheeet {
 
-TEST(ASTTest, TreeNode) {
-  // wsheeet::AST::TreeNodeWParent<int> nodeWIntParent;
-  wsheeet::AST::ConstSimpleValueExpr<wsheeet::IntType> Expr(wsheeet::IntType{},
-                                                            0);
-  auto gs = wsheeet::AST::GlobalScope{};
-  auto in = wsheeet::AST::IdentifierNode{};
-  auto ft = wsheeet::AST::CompoundStmt{};
-  wsheeet::AST::FunctionDecl FnDecl{gs, in, ft};
-  EXPECT_TRUE(true);
-}
+class Identifier {}; // class Identifier
+class IdentifierInfo {}; // class IdentifierInfo
+class SymbolTable {}; // class SymbolTable
+
+} // namespace wsheeet

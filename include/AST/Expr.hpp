@@ -18,69 +18,100 @@
 
 #pragma once
 
+#include "Decl.hpp"
+#include "Stmt.hpp"
+#include "SymbolTable.hpp"
 #include "TreeNode.hpp"
 
 #include <Type.hpp>
 
+#include <concepts>
 #include <string>
 #include <string_view>
 
 namespace wsheeet::AST {
 
-class ExprBase {
-}; // class ExprBase
+using Scope = ITreeNode;
 
-template <concepts::SimpleType T>
-class ConstSimpleValueExpr : ExprBase {
+class ExprParent : public ITreeNode {}; // class ExprParent
+
+class Expr : public ExprParent {}; // class Expr
+
+template <concepts::SimpleType T> class ConstSimpleValueExpr : public Expr {
 public:
   using TypeTy = T;
   using ValueTy = typename TypeTy::ValueTy;
 
 protected:
-  const TypeTy *type;
-  ValueTy value;
+  const TypeTy *Type;
+  ValueTy Value;
 
 public:
-  ConstSimpleValueExpr(const TypeTy &t, ValueTy v) : type{&t}, value{v} {}
+  ConstSimpleValueExpr(ValueTy V) : Type{TypeTy::get()}, Value{V} {}
+
+  ValueTy getValue() const { return Value; }
 }; // class ConstValueExpr
 
-class CharConstValueExpr : public ConstSimpleValueExpr<CharType> {
-}; // class CharConstValueExpr
+using IntLiteral = ConstSimpleValueExpr<IntType>;
 
-class IntConstValueExpr : public ConstSimpleValueExpr<IntType> {
-}; // class IntConstValueExpr
+template <std::floating_point F>
+using FPLiteral = ConstSimpleValueExpr<FPType<F>>;
 
-class FloatConstValueExpr : public ConstSimpleValueExpr<FloatType> {
-}; // class FloatConstValueExpr
+class DeclRefExpr : public Expr,
+                    public TreeNodeWParent<ExprParent> {}; // class DeclRefExpr
 
-class DoubleConstValueExpr : public ConstSimpleValueExpr<DoubleType> {
-}; // class DoubleConstValueExpr
+class CommaExpr : public Expr,
+                  public TreeNodeWParentAnd2Ch<ExprParent, Expr, Expr> {
+}; // class CommaExpr
 
-class UnOpExpr : public virtual ExprBase, public virtual TreeNodeWParentAndCh <ExprBase, ExprBase> {
+class UnOpExpr : public Expr,
+                 public TreeNodeWParentAndCh<ExprParent, Expr> {
 }; // class UnOpExpr
 
-class UnPlusExpr : public UnOpExpr {
-}; // class UnPlusExpr
-
-class UnMinusExpr : public UnOpExpr {
-}; // class UnMinusExpr
-
-class BinOpExpr : public ExprBase, public TreeNodeWParentAnd2Ch<ExprBase, ExprBase, ExprBase> {
+class BinOpExpr : public Expr,
+                  public TreeNodeWParentAnd2Ch<ExprParent, Expr, Expr> {
 }; // class BinOpExpr
 
-class BinPlusExpr : public BinOpExpr {
-}; // class BinPlusExpr
+template <typename ArgT>
+class ArgList : public TreeNodeWParentAndManyCh<ExprParent, ArgT> {
+}; // class ArgList
 
-class BinMinusExpr : public BinOpExpr {
-}; // class BinMinusExpr
+class CallExpr : public Expr,
+                 public TreeNodeWParentAndCh<ExprParent, ArgList<Expr>> {
+}; // class CallExpr
 
-class BinMultExpr : public BinOpExpr {
-}; // class BinMultExpr
+class ElemAccessExpr : public Expr {}; // class ElemAccessExpr
 
-class BinDivExpr : public BinOpExpr {
-}; // class BinDivExpr
+class NamedElemAccessExpr
+    : public ElemAccessExpr,
+      public TreeNodeWParentAnd2Ch<ExprParent, Expr, DeclRefExpr> {
+}; // class NamedElemAccessExpr
 
-class ModifyExpr : public BinOpExpr {
-}; // class ModifyExpr
+class UnnamedElemAccessExpr
+    : public ElemAccessExpr,
+      public TreeNodeWParentAnd2Ch<ExprParent, Expr, Expr> {
+}; // class UnnamedElemAccessExpr
+
+class InputExpr : public Expr,
+                  public TreeNodeWParentAndCh<ExprParent, Expr> {
+}; // class InputExpr
+
+class OutputExpr : public Expr,
+                   public TreeNodeWParentAnd2Ch<ExprParent, Expr, Expr> {
+}; // class OutputExpr
+
+class RepeatExpr : public Expr,
+                   public TreeNodeWParentAnd2Ch<ExprParent, Expr, Expr> {
+}; // class RepeatExpr
+
+class GlueDecl;
+class GlueExpr : public Expr,
+                 public TreeNodeWParentAndCh<ExprParent, ArgList<GlueDecl>> {
+}; // class GlueExpr
+
+class BindExpr : public Expr,
+                 public TreeNodeWParentAnd2Ch<ExprParent, DeclRefExpr,
+                                              ArgList<NamedElemAccessExpr>> {
+}; // class BindExpr
 
 } // namespace wsheeet::AST

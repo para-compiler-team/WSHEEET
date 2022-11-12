@@ -18,9 +18,11 @@
 
 #pragma once
 
+#include "AST/Stmt.hpp"
 #include <algorithm>
 #include <string>
 #include <sstream>
+#include <type_traits>
 #include <vector>
 
 namespace wsheeet {
@@ -119,7 +121,11 @@ protected:
   size_t bitwidth = 32;
 }; // class IntType
 
-class FloatType : public SimpleType {
+template <std::floating_point F>
+class FPType;
+
+template <>
+class FPType<float> : public SimpleType {
 public:
   using ValueTy = float;
 
@@ -128,14 +134,15 @@ public:
   std::string name() const override { return "float"; };
 }; // class FloatType
 
-class DoubleType : public SimpleType {
+template <>
+class FPType<double> : public SimpleType {
 public:
   using ValueTy = double;
 
   bool isDouble() const override { return true; }
 
   std::string name() const override { return "double"; };
-}; // class DoubleType
+}; // class FloatType
 
 class CompoundType : public IType {
 public:
@@ -159,13 +166,13 @@ public:
   bool isArray() const override { return true; }
 
 protected:
-  IType *elemType;
-  size_t size;
+  IType *ElemType;
+  AST::IStmt *Size;
 
 public:
   std::string name() const override {
     std::ostringstream oss;
-    oss << elemType->name() << "[" << size << "]";
+    oss << ElemType->name() << "[" << Size << "]";
     return oss.str();
   }
 }; // class ArrayType
