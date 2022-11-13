@@ -34,8 +34,8 @@ char_type: char_keyword
 int_type: int_keyword [ left_paren int_literal right_paren ]
 float_type: float_keyword
 double_type: double_keyword
-structure_type: left_scope ( identifier [ colon type ] )+ right_scope
-structure_type: left_paren ( identifier [ colon type ] )* right_paren [ colon type]
+structure_type: left_scope ( decl_ref_expr )+ right_scope
+function_type: left_paren ( decl_ref_expr )* right_paren [ colon type]
 
 layer: full_layer | shortcut_layer
 
@@ -57,11 +57,13 @@ if_stmt: if_keyword left_paren expr right_paren cf_stmt
 
 if_else_stmt: if_keyword left_paren expr right_paren cf_stmt else_keyword cf_stmt
 
-for_stmt: for_keyword left_paren identifier in_keyword expr right_paren cf_stmt
+for_stmt: for_keyword left_paren decl_ref_expr in_keyword expr right_paren cf_stmt
 
 while_stmt: while_keyword left_paren expr right_paren cf_stmt
 
-expr: ( identifier | operator_expr | function_call_expr | elem_access_expr | builtin_expr | range_expr ) colon type
+expr: decl_ref_expr | operator_expr | call_expr | elem_access_expr | builtin_expr | range_expr
+
+decl_ref_expr: identifier [ colon type ]
 
 operator_expr: unary_operator_expr | binary_operator_expr
 
@@ -72,20 +74,20 @@ binary_operator_expr: expr binary_op expr // I think we will distinguish lvalue 
 binary_op: assign | plus | minus | mul | div | rem | cmp_op
 cmp_op: not_equal | equal | less | more | less_equal | more_equal
 
-function_call_expr: expr left_paren [ arg_list ] right_paren compound_stmt
+call_expr: expr left_paren [ arg_list ] right_paren compound_stmt
 
 arg_list: expr ( comma expr )*
 
 elem_access_expr: unnamed_elem_access_expr | named_elem_access_expr
 unnamed_elem_access_expr: expr left_square expr right_square
-named_elem_access_expr: expr fullstop identifier
+named_elem_access_expr: expr fullstop decl_ref_expr
 
 builtin_expr: input_expr | output_expr | repeat_expr | glue_expr | bind_expr
-input_expr: input_keyword left_paren expr right_paren
+input_expr: input_keyword left_paren expr right_paren [ colon type ]
 output_expr: output_keyword left_paren expr comma expr right_paren
 repeat_expr: repeat_keyword left_paren expr comma expr right_paren
 glue_expr: glue_keyword left_paren expr ( comma glue_decl )* right_paren
 glue_decl: expr [ colon identifier ]
-bind_expr: bind_keyword left_paren identifier ( comma named_elem_access_expr )* right_paren
+bind_expr: bind_keyword left_paren decl_ref_expr ( comma named_elem_access_expr )* right_paren
 
 range_expr: expr colon expr [ colon expr ]
