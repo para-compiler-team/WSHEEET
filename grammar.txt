@@ -61,9 +61,11 @@ for_stmt: for_keyword left_paren decl_ref_expr in_keyword expr right_paren cf_st
 
 while_stmt: while_keyword left_paren expr right_paren cf_stmt
 
-expr: decl_ref_expr | comma_expr | operator_expr | call_expr | elem_access_expr | builtin_expr | range_expr
+expr: decl_ref_expr | function_expr | comma_expr | operator_expr | call_expr | elem_access_expr | builtin_expr | range_expr
 
 decl_ref_expr: identifier [ colon type ]
+
+function_expr: compound_stmt
 
 comma_expr: expr comma expr
 
