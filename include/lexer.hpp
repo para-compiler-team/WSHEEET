@@ -147,7 +147,7 @@ class Lexer : public yyFlexLexer {
 
     token_type process_range() { return token_type::RANGE; }
 
-    token_type process_char() { return token_type::CHAR; }
+    token_type process_char() { return token_type::CHAR_NUMBER; }
 
     token_type process_condition(const char *lexem) {
         switch (lexem[0]) {

@@ -7,3 +7,6 @@ mkdir build && cd build \
 cmake .. \
 make
 ```
+
+## C99 grammar
+https://gist.github.com/codebrainz/2933703

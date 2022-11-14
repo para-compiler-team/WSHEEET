@@ -1,18 +1,32 @@
 cmake_minimum_required(VERSION 3.10)
-project (WSHEET VERSION 1.0)
+project (WSHEEET VERSION 1.0)
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-if (NOT ("${CMAKE_CURRENT_BINARY_DIR}" STREQUAL "${CMAKE_SOURCE_DIR}/build"))
-    message(FATAL_ERROR "Wrong build directory\nShould be ${CMAKE_SOURCE_DIR}/build")
+option(FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)." ON)
+
+if(${FORCE_COLORED_OUTPUT})
+  message("-- Force colored output enabled")
+
+  if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
+     add_compile_options(-fdiagnostics-color=always)
+  elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
+     add_compile_options(-fcolor-diagnostics)
+  endif()
+endif()
+
+find_package(GTest)
+
+if(GTest_FOUND)
+  set(BUILD_TESTING ON)
+  enable_testing()
+  add_subdirectory(test)
 endif()
 
 set(INCLUDE_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/include)
-set(SRC_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/src)
+set(SRC_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/lib)
 list(APPEND INCLUDE_DIRS ${INCLUDE_PREFIX})
 
-# message(NOTICE ${CMAKE_CURRENT_SOURCE_DIR})
-# message(NOTICE ${CMAKE_SOURCE_DIR})
-# message(NOTICE ${CMAKE_CURRENT_BINARY_DIR})
-
-add_subdirectory(src)
+add_subdirectory(lib)
