@@ -1,21 +1,27 @@
 //para-lexer:
 
-left_square: [
-right_square: ]
-left_paren: (
-right_paren: )
-left_scope: {
-right_scope: }
+left_square: \[
+right_square: \]
+left_paren: \(
+right_paren: \)
+left_scope: \{
+right_scope: \}
 colon: :
 semicolon: ;
 comma: ,
-fullstop: .
-plus: +
+fullstop: \.
+plus: \+
 minus: -
-mul: *
+logical_not: !
+binary_not: ~
+mul: \*
 div: /
 rem: %
 assign: =
+add_assign: \+=
+sub_assign: -=
+mul_assign: \*=
+div_assign: /=
 equal: ==
 not_equal: !=
 less: <
@@ -24,24 +30,22 @@ more: >
 more_equal: >=
 
 identifier: [_a-zA-Z]+[_0-9a-zA-Z]*
+number: [0-9]+
+fp_number: ([0-9]*\.[0-9]+)|([0-9]+\.[0-9]*)
+quote: "
+not_quote: ([^"])|(\\")
 
 
 
 //para-parser:
 
-type: char_type | int_type | float_type | double_type | structure_type | function_type
-char_type: char_keyword
-int_type: int_keyword [ left_paren int_literal right_paren ]
-float_type: float_keyword
-double_type: double_keyword
-structure_type: left_scope ( decl_ref_expr )+ right_scope
-function_type: left_paren ( decl_ref_expr )* right_paren [ colon type]
-
-layer: full_layer | shortcut_layer
+translation_unit: ( full_layer )+ | short_layer
 
 full_layer: layer_keyword left_paren int_literal [ , string_literal ] right_paren compound_stmt
+int_literal: number
+string_literal: quote ( not_quote )* quote
 
-shortcut_layer: ( stmt )+
+short_layer: ( stmt )+
 
 stmt: expr_stmt | compound_stmt | return_stmt | if_stmt | if_else_stmt | for_stmt | while_stmt
 
@@ -60,6 +64,14 @@ if_else_stmt: if_keyword left_paren expr right_paren cf_stmt else_keyword cf_stm
 for_stmt: for_keyword left_paren decl_ref_expr in_keyword expr right_paren cf_stmt
 
 while_stmt: while_keyword left_paren expr right_paren cf_stmt
+
+type: char_type | int_type | float_type | double_type | structure_type | function_type
+char_type: char_keyword
+int_type: int_keyword [ left_paren int_literal right_paren ]
+float_type: float_keyword
+double_type: double_keyword
+structure_type: left_scope ( decl_ref_expr )+ right_scope
+function_type: left_paren ( decl_ref_expr )* right_paren [ colon type]
 
 expr: decl_ref_expr | function_expr | comma_expr | operator_expr | call_expr | elem_access_expr | builtin_expr | range_expr
 
