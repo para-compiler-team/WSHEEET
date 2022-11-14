@@ -58,6 +58,16 @@ parser::token_type yylex(parser::semantic_type* yylval,
   WHILE
   FOR
 
+  LOGIC_AND
+  LOGIC_INV
+  LOGIC_OR
+  LOGIC_XOR
+
+  BIT_SHIFT_LEFT
+  BIT_SHIFT_RIGHT
+
+  NOT
+
   FLOAT_NUMBER
   
   EQ
@@ -93,7 +103,31 @@ parser::token_type yylex(parser::semantic_type* yylval,
 
 %left PLUS MINUS
 %left MUL DIV
-%left NEG
+%left NEG //
+
+%left LOGIC_AND
+%left LOGIC_OR
+%left LOGIC_XOR
+%left LOGIC_INV
+%left LOGIC_NEG //
+
+%left NOT
+%left COND_NEG // 
+
+%left AND
+%left OR
+%left EQ
+
+%left NOTEQ
+%left GE
+%left LE
+%left G_BRACKET
+%left L_BRACKET
+%left BIT_SHIFT_LEFT
+%left BIT_SHIFT_RIGHT
+
+%left EQUAL
+%left COLON
 
 %start program
 
@@ -115,15 +149,15 @@ statements : %empty
 ;
 
 statement : DEBUG_TOKEN SCOLON
-          | var_lval SCOLON
+          | var_decl SCOLON
           | func_decl SCOLON
           | array_decl SCOLON
-          | array_elem_lval SCOLON
+       //   | decl_rval_expression SCOLON
           | if_statement
           | else_statement
           | while_statement
           | return_statement SCOLON
-          | struct_decl
+          | struct_decl SCOLON
 ;
 
 // basic types & elements
@@ -135,15 +169,14 @@ basic_type :  CHAR
 
 lval :    VARNAME
         | VARNAME SQUARE_BRACKET_LEFT right_expression SQUARE_BRACKET_RIGHT
-        | func_usage_rval
-        | struct_field_rval
+        | struct_field_lval
 ;
 
 rval : basic_rval
-        | VARNAME
-        | VARNAME SQUARE_BRACKET_LEFT right_expression SQUARE_BRACKET_RIGHT
-        | func_usage_rval
-        | struct_field_rval
+     | array_elem_rval
+     | func_usage_rval
+     | method_rval
+     | struct_field_rval
 ;
 
 basic_rval : INT_NUMBER
@@ -152,38 +185,38 @@ basic_rval : INT_NUMBER
            | DOUBLE
 ;
 
-extern_input_single : EXTERN_INPUT ROUND_BRACKET_LEFT INT_NUMBER ROUND_BRACKET_RIGHT COLON basic_type
-                    | EXTERN_INPUT ROUND_BRACKET_LEFT INT_NUMBER ROUND_BRACKET_RIGHT
-;
-
 // expressions
-right_expression: arithmetic_expression
+right_expression: rval_expression
+//| ROUND_BRACKET_LEFT decl_right_expression ROUND_BRACKET_RIGHT
+//| ROUND_BRACKET_LEFT conditions ROUND_BRACKET_RIGHT
+//| decl_right_expression PLUS rval_expression
 ;
 
-/*
-arithmetic_operator: MUL
-                   | DIV
-                   | PLUS
-                   | MINUS
+rval_expression: rval
+| decl_rval_expression
+| rval_expression PLUS rval_expression
+| rval_expression MINUS rval_expression
+| rval_expression MUL rval_expression
+| rval_expression DIV rval_expression
+| MINUS rval_expression %prec NEG
+| rval_expression LOGIC_XOR rval_expression
+| rval_expression LOGIC_OR rval_expression
+| rval_expression LOGIC_AND rval_expression
+| LOGIC_INV rval_expression %prec LOGIC_NEG
+| rval_expression EQ rval_expression
+| rval_expression NOTEQ rval_expression
+| rval_expression AND rval_expression 
+| rval_expression OR rval_expression
+| rval_expression L_BRACKET rval_expression
+| rval_expression G_BRACKET rval_expression
+| rval_expression GE rval_expression
+| rval_expression LE rval_expression
+| NOT rval_expression %prec COND_NEG
+| ROUND_BRACKET_LEFT rval_expression ROUND_BRACKET_RIGHT
 ;
 
-arithmetic_scope: ROUND_BRACKET_LEFT arithmetic_expression ROUND_BRACKET_RIGHT
-;
-
-arithmetic_expression: rval
-                     | arithmetic_expression arithmetic_operator rval
-                     | arithmetic_scope
-;
-*/
-
-arithmetic_expression: rval
-| arithmetic_expression PLUS arithmetic_expression
-| arithmetic_expression MINUS arithmetic_expression
-| arithmetic_expression MUL arithmetic_expression
-| arithmetic_expression DIV arithmetic_expression
-| MINUS arithmetic_expression %prec NEG
-| ROUND_BRACKET_LEFT arithmetic_expression ROUND_BRACKET_RIGHT
-;
+decl_rval_expression : lval EQUAL rval_expression
+ 
 
 /*
 1.2. Types
@@ -209,13 +242,12 @@ Integer are two's complement signed numbers with two's complement signed wrap. N
 */
 
 // var declarations
-var_lval : VARNAME COLON var_type EQUAL right_expression
+var_decl : VARNAME COLON var_type EQUAL right_expression
          | VARNAME COLON var_type
-         | VARNAME EQUAL extern_input_single
-         | VARNAME EQUAL right_expression
+         | VARNAME EQUAL builtin_input_single_rval
+         | VARNAME EQUAL builtin_input_single_rval_with_type
+         //| VARNAME EQUAL right_expression
 ;
-
-
 
 var_type:  basic_type
         |  INT ROUND_BRACKET_LEFT INT_NUMBER ROUND_BRACKET_RIGHT
@@ -244,6 +276,7 @@ func_decl : VARNAME func_args_decl EQUAL func_body
 ;
 
 func_body : CURVED_BRACKET_LEFT statements CURVED_BRACKET_RIGHT
+            statement
 ;
 
 func_args_decl : COLON ROUND_BRACKET_LEFT func_args_decl_list ROUND_BRACKET_RIGHT COLON basic_type
@@ -289,22 +322,42 @@ glue_args_decl_list : glue_arg_decl
 ;
 
 glue_right_expression : right_expression
-                      | bind_rval
+                      | builtin_bind_rval
 ;
 
 glue_arg_decl : glue_right_expression COLON VARNAME
               | glue_right_expression
 ;
 
-// bind
-bind_rval : BIND ROUND_BRACKET_LEFT VARNAME COMMA struct_fields_list ROUND_BRACKET_RIGHT
-          | BIND ROUND_BRACKET_LEFT VARNAME ROUND_BRACKET_RIGHT
+// input()
+builtin_input_single_rval : EXTERN_INPUT ROUND_BRACKET_LEFT INT_NUMBER ROUND_BRACKET_RIGHT
+;
+builtin_input_single_rval_with_type : EXTERN_INPUT ROUND_BRACKET_LEFT INT_NUMBER ROUND_BRACKET_RIGHT COLON basic_type
 ;
 
+builtin_input_array_rval : EXTERN_INPUT ROUND_BRACKET_LEFT INT_NUMBER RANGE INT_NUMBER ROUND_BRACKET_RIGHT
+;
+builtin_input_array_rval_with_type : EXTERN_INPUT ROUND_BRACKET_LEFT INT_NUMBER RANGE INT_NUMBER ROUND_BRACKET_RIGHT COLON array_basic_type
+;
 
+// output()
+
+// bind()
+builtin_bind_rval : BIND ROUND_BRACKET_LEFT VARNAME COMMA struct_fields_list ROUND_BRACKET_RIGHT
+                  | BIND ROUND_BRACKET_LEFT VARNAME ROUND_BRACKET_RIGHT
+;
+
+// repeat()
+builtin_repeat_rval : REPEAT ROUND_BRACKET_LEFT VARNAME COMMA right_expression ROUND_BRACKET_RIGHT
+;
+
+// vector<>
+builtin_vector_rval : VECTOR L_BRACKET basic_type COMMA INT_NUMBER G_BRACKET
+;
 
 struct_fields_list: struct_field_lval
                   | struct_field_lval COMMA struct_fields_list
+;
 
 /*
 1.3. Arrays
@@ -326,23 +379,25 @@ array_decl: VARNAME COLON array_type EQUAL array_body
           | VARNAME EQUAL array_body
 ;
 
-array_elem_lval : VARNAME SQUARE_BRACKET_LEFT INT_NUMBER SQUARE_BRACKET_RIGHT EQUAL right_expression
-                | VARNAME SQUARE_BRACKET_LEFT INT_NUMBER SQUARE_BRACKET_RIGHT EQUAL extern_input_single
+/*
+array_elem_lval : VARNAME SQUARE_BRACKET_LEFT right_expression SQUARE_BRACKET_RIGHT EQUAL right_expression
+                | VARNAME SQUARE_BRACKET_LEFT right_expression SQUARE_BRACKET_RIGHT EQUAL builtin_input_single_rval
 ;
+*/
+
+array_elem_rval : VARNAME SQUARE_BRACKET_LEFT right_expression SQUARE_BRACKET_RIGHT
 
 array_type: array_basic_type
-          | array_vector_type
+          | builtin_vector_rval
 ;
 
 array_basic_type : basic_type SQUARE_BRACKET_LEFT INT_NUMBER SQUARE_BRACKET_RIGHT 
 ;
 
-array_vector_type : VECTOR L_BRACKET basic_type COMMA INT_NUMBER G_BRACKET
-;
-
 array_body : CURVED_BRACKET_LEFT array_list CURVED_BRACKET_RIGHT
-           | REPEAT ROUND_BRACKET_LEFT VARNAME COMMA INT_NUMBER ROUND_BRACKET_RIGHT
-           | EXTERN_INPUT ROUND_BRACKET_LEFT INT_NUMBER RANGE INT_NUMBER ROUND_BRACKET_RIGHT COLON array_basic_type 
+           | builtin_repeat_rval
+           | builtin_input_array_rval
+           | builtin_input_array_rval_with_type
 ;
 
 array_list : basic_rval COMMA array_list
@@ -370,10 +425,12 @@ struct_args_decl_list : struct_arg_decl
 
 struct_arg_decl : VARNAME COLON basic_type
                 | VARNAME COLON array_basic_type
-                | VARNAME COLON func_args_decl
+                | VARNAME COLON func_args_decl // for method
 ;
 
-
+// method usage
+method_rval : VARNAME DOT VARNAME ROUND_BRACKET_LEFT func_args_usage_list ROUND_BRACKET_RIGHT
+;
 
 // conditions
 

@@ -92,9 +92,7 @@ class Lexer : public yyFlexLexer {
         }
     }
 
-    void set_lexem(const char *lexem, int line) {
-        std::cout << "Current lexem: " << lexem << std::endl;
-    }
+    void set_lexem(const char *lexem) { std::cout << "Current lexem: " << lexem << std::endl; }
 
     token_type process_comp(const char *lexem) {
         switch (lexem[0]) {
@@ -184,6 +182,27 @@ class Lexer : public yyFlexLexer {
             return token_type::ERR;
         }
     }
+
+    token_type process_logic_and() { return token_type::LOGIC_AND; }
+
+    token_type process_logic_or() { return token_type::LOGIC_OR; }
+
+    token_type process_logic_xor() { return token_type::LOGIC_XOR; }
+
+    token_type process_not() { return token_type::NOT; }
+
+    token_type process_bitshift(const char *lexem) {
+        switch (lexem[0]) {
+        case '>':
+            return token_type::BIT_SHIFT_RIGHT;
+        case '<':
+            return token_type::BIT_SHIFT_LEFT;
+        default:
+            return token_type::ERR;
+        }
+    }
+
+    token_type process_logic_inv() { return token_type::LOGIC_INV; }
 
   public:
     int yylex() override;
