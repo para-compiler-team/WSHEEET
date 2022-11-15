@@ -36,449 +36,534 @@ parser::token_type yylex(parser::semantic_type* yylval,
                          LexerDriver* driver);
 }
 }
+%token ERR
 
-%token
-  DEBUG_TOKEN "alex_great"
-  EQUAL
-  MINUS
-  PLUS
-  MUL
-  DIV
-  AND
-  OR
-  COLON
-  SCOLON
-  COMMA
-  DOT
-  RANGE
-  ERR
+%token	IDENTIFIER I_CONSTANT F_CONSTANT STRING_LITERAL FUNC_NAME SIZEOF
+%token	PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
+%token	AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
+%token	SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN
+%token	XOR_ASSIGN OR_ASSIGN
+%token	TYPEDEF_NAME ENUMERATION_CONSTANT
 
-  IF
-  ELSE
-  WHILE
-  FOR
+%token	TYPEDEF EXTERN STATIC AUTO REGISTER INLINE
+%token	CONST RESTRICT VOLATILE
+%token	BOOL CHAR SHORT INT LONG SIGNED UNSIGNED FLOAT DOUBLE VOID
+%token	COMPLEX IMAGINARY 
+%token	STRUCT UNION ENUM ELLIPSIS
 
-  LOGIC_AND
-  LOGIC_INV
-  LOGIC_OR
-  LOGIC_XOR
+%token	CASE DEFAULT IF ELSE SWITCH WHILE DO FOR GOTO CONTINUE BREAK RETURN
 
-  BIT_SHIFT_LEFT
-  BIT_SHIFT_RIGHT
+%token	ALIGNAS ALIGNOF ATOMIC GENERIC NORETURN STATIC_ASSERT THREAD_LOCAL
 
-  NOT
-
-  
-  EQ
-  NOTEQ
-  GE
-  LE
-  G_BRACKET
-  L_BRACKET
-  
-  LINE_COMMENT
-  
-  CHAR
-  INT
-  FLOAT
-  DOUBLE
-  EXTERN_INPUT
-  REPEAT
-  GLUE
-  BIND
-  RETURN
-  VECTOR
-
-  CURVED_BRACKET_LEFT
-  CURVED_BRACKET_RIGHT
-  SQUARE_BRACKET_LEFT
-  SQUARE_BRACKET_RIGHT
-  ROUND_BRACKET_LEFT
-  ROUND_BRACKET_RIGHT
-;
-
-%token <int> INT_NUMBER
-%token <float> FLOAT_NUMBER
-%token <char> CHAR_NUMBER
-%token <const char*> VARNAME
-
-%left PLUS MINUS
-%left MUL DIV
-%left NEG //
-
-%left LOGIC_AND
-%left LOGIC_OR
-%left LOGIC_XOR
-%left LOGIC_INV
-%left LOGIC_NEG //
-
-%left NOT
-%left COND_NEG // 
-
-%left AND
-%left OR
-%left EQ
-
-%left NOTEQ
-%left GE
-%left LE
-%left G_BRACKET
-%left L_BRACKET
-%left BIT_SHIFT_LEFT
-%left BIT_SHIFT_RIGHT
-
-%right EQUAL
-
-%start program
+%start translation_unit
 
 %%
 
-program : statements
-;
-
-/* scope & statements */
-scope : CURVED_BRACKET_LEFT statements CURVED_BRACKET_RIGHT statements
-;
-single_scope : CURVED_BRACKET_LEFT statements CURVED_BRACKET_RIGHT
-             | statement
-;
-
-statements : %empty
-           | statement statements
-           | scope
-;
-
-statement : DEBUG_TOKEN SCOLON
-          | var_decl SCOLON
-          | func_decl SCOLON
-          | array_decl SCOLON
-          | decl_rval_expression SCOLON
-          | if_statement
-          | else_statement
-          | while_statement
-          | return_statement SCOLON
-          | struct_decl SCOLON
-;
-
-// basic types & elements
-basic_type :  CHAR
-           |  INT
-           |  FLOAT
-           |  DOUBLE
-;
-
-lval :    VARNAME
-        | VARNAME SQUARE_BRACKET_LEFT right_expression SQUARE_BRACKET_RIGHT
-        | struct_field_lval
-;
-
-rval : basic_rval
-     | array_elem_rval
-     | func_usage_rval
-     | method_rval
-     | struct_field_rval
-     | var_rval
-     //| builtin_input_single_rval
-;
-
-var_rval : VARNAME
-;
-
-basic_rval : INT_NUMBER
-           | FLOAT_NUMBER
-           | CHAR_NUMBER
-           //| DOUBLE_NUMBER
-;
-
-// expressions
-right_expression: rval_expression
-//| ROUND_BRACKET_LEFT decl_right_expression ROUND_BRACKET_RIGHT
-//| ROUND_BRACKET_LEFT condition_expr ROUND_BRACKET_RIGHT
-//| decl_right_expression PLUS rval_expression
-;
-
-rval_expression: rval
-| rval_expression PLUS rval_expression {std::cout << "ura\n";}
-| rval_expression MINUS rval_expression
-| rval_expression MUL rval_expression
-| rval_expression DIV rval_expression
-| MINUS rval_expression %prec NEG
-| rval_expression LOGIC_XOR rval_expression
-| rval_expression LOGIC_OR rval_expression
-| rval_expression LOGIC_AND rval_expression
-| LOGIC_INV rval_expression %prec LOGIC_NEG
-| rval_expression EQ rval_expression
-| rval_expression NOTEQ rval_expression
-| rval_expression AND rval_expression 
-| rval_expression OR rval_expression
-| rval_expression L_BRACKET rval_expression
-| rval_expression G_BRACKET rval_expression
-| rval_expression GE rval_expression
-| rval_expression LE rval_expression
-| NOT rval_expression %prec COND_NEG
-| ROUND_BRACKET_LEFT rval_expression ROUND_BRACKET_RIGHT
-//| decl_rval_expression
-;
-
-decl_rval_expression : lval EQUAL rval_expression {std::cout << "here" << std::endl;}
-                     //| lval EQUAL builtin_input_single_rval_with_type
-
-
-/*
-1.2. Types
-
-Every entity introduced by its first mention. Entity have associated type that is either specified or deduced.
-Special input and output are generic IO entities.
-You may imagine input(0) as a typed stdin and output(0) as a typed stdout.
-Definite meaning of those are given at layer 3.
-
-v0 = 0;
-v1 : double = v0;
-v2 = input(0) : int; // not input(v0)
-v3 : int;
-output(0, v1);
-
-For int type you may directly specify size.
-
-v0 : int(16) = 0; // 16-bit int
-
-Default int is 32.
-
-Integer are two's complement signed numbers with two's complement signed wrap. No UB here.
-*/
-
-// var declarations
-var_decl : 
-          VARNAME COLON var_type EQUAL right_expression
-         | VARNAME COLON var_type
-         //| VARNAME EQUAL builtin_input_single_rval
-         //| VARNAME EQUAL builtin_input_single_rval_with_type
-         //| VARNAME EQUAL right_expression
-;
-
-var_type:  basic_type
-        |  INT ROUND_BRACKET_LEFT INT_NUMBER ROUND_BRACKET_RIGHT
-;
-
-
-
-/*
-1.5. Functions
-
-Function entity is an abstraction mechanism. It is a callable.
-
-f0 = { v3 = input(0) + 1; v3 * v3; };
-v7 = f0(2); // but not f0(2, 3)
-f1 : (x) = { v3 = x + 1; v3 * v3; };
-f2 : (x, y) = { v3 = x + y; v3 * v3; };
-f3 : (x : int, y : double) : int = { v3 = x + y; v3 * v3; };
-v8 = f3(v0, v1);
-
-Normal function return is an entity generated by the last expression.
-*/
-
-// function declarations
-func_decl : VARNAME func_args_decl EQUAL func_body
-          //| VARNAME EQUAL func_body
-;
-
-func_body : CURVED_BRACKET_LEFT statements CURVED_BRACKET_RIGHT
-            statement
-;
-
-func_args_decl : COLON ROUND_BRACKET_LEFT func_args_decl_list ROUND_BRACKET_RIGHT COLON basic_type
-               | COLON ROUND_BRACKET_LEFT func_args_decl_list ROUND_BRACKET_RIGHT
-;
-
-func_args_decl_list : func_arg_decl
-                    | func_arg_decl COMMA func_args_decl_list
-;
-
-func_arg_decl : VARNAME COLON basic_type
-              | VARNAME
-              | %empty
-;
-
-// function usage
-func_usage_rval : VARNAME ROUND_BRACKET_LEFT func_args_usage_list ROUND_BRACKET_RIGHT
-;
-
-func_args_usage_list : func_arg_usage
-                     | func_arg_usage COMMA func_args_usage_list
-                     | %empty
-;
-
-func_arg_usage : func_arg_usage_expression
-;
-
-func_arg_usage_expression : right_expression
-;
-
-// return statement
-return_statement : RETURN right_expression
-                 | right_expression
-                 ;
-
-// builtin statements
-// glue
-glue_rval : GLUE glue_args_decl
-;
-
-glue_args_decl: ROUND_BRACKET_LEFT glue_args_decl_list ROUND_BRACKET_RIGHT
-;
-
-glue_args_decl_list : glue_arg_decl
-                    | glue_arg_decl COMMA glue_args_decl_list
-;
-
-glue_right_expression : right_expression
-                      | builtin_bind_rval
-;
-
-glue_arg_decl : glue_right_expression COLON VARNAME
-              | glue_right_expression
-;
-
-// input()
-builtin_input_single_rval : EXTERN_INPUT ROUND_BRACKET_LEFT INT_NUMBER ROUND_BRACKET_RIGHT
-;
-builtin_input_single_rval_with_type : EXTERN_INPUT ROUND_BRACKET_LEFT INT_NUMBER ROUND_BRACKET_RIGHT COLON basic_type
-;
-
-builtin_input_array_rval : EXTERN_INPUT ROUND_BRACKET_LEFT INT_NUMBER RANGE INT_NUMBER ROUND_BRACKET_RIGHT
-;
-builtin_input_array_rval_with_type : EXTERN_INPUT ROUND_BRACKET_LEFT INT_NUMBER RANGE INT_NUMBER ROUND_BRACKET_RIGHT COLON array_basic_type
-;
-
-// output()
-
-// bind()
-builtin_bind_rval : BIND ROUND_BRACKET_LEFT VARNAME COMMA struct_fields_list ROUND_BRACKET_RIGHT
-                  | BIND ROUND_BRACKET_LEFT VARNAME ROUND_BRACKET_RIGHT
-;
-
-// repeat()
-builtin_repeat_rval : REPEAT ROUND_BRACKET_LEFT VARNAME COMMA right_expression ROUND_BRACKET_RIGHT
-;
-
-// vector<>
-builtin_vector_rval : VECTOR L_BRACKET basic_type COMMA INT_NUMBER G_BRACKET
-;
-
-struct_fields_list: struct_field_lval
-                  | struct_field_lval COMMA struct_fields_list
-;
-
-/*
-1.3. Arrays
-
-Array entity is syntactic glue for the couple of entities of the same type. Array have CT-known size.
-Special arryas are vectors. Vectors have both CT-known size and CT-known indexes.
-
-arr0 = repeat(v0, 5); // array of 5
-arr1 : int[5] = {1, 2, 3, 4}; // array of 5
-arr2 : vector<int, 5> = {1, 2, 3, 4, 5}; // vector
-v3 = 3;
-v4 = arr0[v3];
-v5 = arr2[3]; // not arr2[v3]
-arr_inputs = input(0..3) : int[4]; // array of 4
-*/
-
-// array declarations
-array_decl: VARNAME COLON array_type EQUAL array_body
-         // | VARNAME EQUAL array_body
-;
-
-/*
-array_elem_lval : VARNAME SQUARE_BRACKET_LEFT right_expression SQUARE_BRACKET_RIGHT EQUAL right_expression
-                | VARNAME SQUARE_BRACKET_LEFT right_expression SQUARE_BRACKET_RIGHT EQUAL builtin_input_single_rval
-;
-*/
-
-array_elem_rval : VARNAME SQUARE_BRACKET_LEFT right_expression SQUARE_BRACKET_RIGHT
-
-array_type: array_basic_type
-          | builtin_vector_rval
-;
-
-array_basic_type : basic_type SQUARE_BRACKET_LEFT INT_NUMBER SQUARE_BRACKET_RIGHT 
-;
-
-array_body : CURVED_BRACKET_LEFT array_list CURVED_BRACKET_RIGHT
-           | builtin_repeat_rval
-           | builtin_input_array_rval
-           | builtin_input_array_rval_with_type
-;
-
-array_list : basic_rval COMMA array_list
-           | basic_rval
-;
-
-// structures
-
-struct_field_lval : VARNAME DOT VARNAME
-struct_field_rval : VARNAME DOT VARNAME
-
-struct_decl_rval : glue_rval
-
-struct_decl : VARNAME struct_args_decl EQUAL struct_decl_rval
-            | VARNAME struct_args_decl
-            //| VARNAME EQUAL struct_decl_rval
-;
-
-struct_args_decl : COLON CURVED_BRACKET_LEFT struct_args_decl_list CURVED_BRACKET_RIGHT
-;
-
-struct_args_decl_list : struct_arg_decl
-                    | struct_arg_decl COMMA struct_args_decl_list
-;
-
-struct_arg_decl : VARNAME COLON basic_type
-                | VARNAME COLON array_basic_type
-                | VARNAME COLON func_args_decl // for method
-;
-
-// method usage
-method_rval : VARNAME DOT VARNAME ROUND_BRACKET_LEFT func_args_usage_list ROUND_BRACKET_RIGHT
-;
-
-// condition_expr
-condition_expr : right_expression
-
-if_statement: IF ROUND_BRACKET_LEFT condition_expr ROUND_BRACKET_RIGHT if_body else_statement
-            //| IF ROUND_BRACKET_LEFT condition_expr ROUND_BRACKET_RIGHT if_body
-;
-
-
-else_statement: ELSE else_body
-;
-
-while_statement : WHILE ROUND_BRACKET_LEFT condition_expr ROUND_BRACKET_RIGHT if_body
-
-/*
-condition_expr : rval 
-           | rval condition_operator condition_expr
-           | conditional_scope
-;
-
-condition_operator: L_BRACKET
-                    | G_BRACKET
-                    | GE
-                    | LE
-                    | AND
-                    | OR
-                    | EQ
-                    | NOTEQ
-;
-
-conditional_scope : ROUND_BRACKET_LEFT condition_expr ROUND_BRACKET_RIGHT
-;
-*/
-
-if_body: single_scope
-;
-else_body: single_scope
-;
+primary_expression
+	: IDENTIFIER
+	| constant
+	| string
+	| '(' expression ')'
+	| generic_selection
+	;
+
+constant
+	: I_CONSTANT		/* includes character_constant */
+	| F_CONSTANT
+	| ENUMERATION_CONSTANT	/* after it has been defined as such */
+	;
+
+enumeration_constant		/* before it has been defined as such */
+	: IDENTIFIER
+	;
+
+string
+	: STRING_LITERAL
+	| FUNC_NAME
+	;
+
+generic_selection
+	: GENERIC '(' assignment_expression ',' generic_assoc_list ')'
+	;
+
+generic_assoc_list
+	: generic_association
+	| generic_assoc_list ',' generic_association
+	;
+
+generic_association
+	: type_name ':' assignment_expression
+	| DEFAULT ':' assignment_expression
+	;
+
+postfix_expression
+	: primary_expression
+	| postfix_expression '[' expression ']'
+	| postfix_expression '(' ')'
+	| postfix_expression '(' argument_expression_list ')'
+	| postfix_expression '.' IDENTIFIER
+	| postfix_expression PTR_OP IDENTIFIER
+	| postfix_expression INC_OP
+	| postfix_expression DEC_OP
+	| '(' type_name ')' '{' initializer_list '}'
+	| '(' type_name ')' '{' initializer_list ',' '}'
+	;
+
+argument_expression_list
+	: assignment_expression
+	| argument_expression_list ',' assignment_expression
+	;
+
+unary_expression
+	: postfix_expression
+	| INC_OP unary_expression
+	| DEC_OP unary_expression
+	| unary_operator cast_expression
+	| SIZEOF unary_expression
+	| SIZEOF '(' type_name ')'
+	| ALIGNOF '(' type_name ')'
+	;
+
+unary_operator
+	: '&'
+	| '*'
+	| '+'
+	| '-'
+	| '~'
+	| '!'
+	;
+
+cast_expression
+	: unary_expression
+	| '(' type_name ')' cast_expression
+	;
+
+multiplicative_expression
+	: cast_expression
+	| multiplicative_expression '*' cast_expression
+	| multiplicative_expression '/' cast_expression
+	| multiplicative_expression '%' cast_expression
+	;
+
+additive_expression
+	: multiplicative_expression
+	| additive_expression '+' multiplicative_expression
+	| additive_expression '-' multiplicative_expression
+	;
+
+shift_expression
+	: additive_expression
+	| shift_expression LEFT_OP additive_expression
+	| shift_expression RIGHT_OP additive_expression
+	;
+
+relational_expression
+	: shift_expression
+	| relational_expression '<' shift_expression
+	| relational_expression '>' shift_expression
+	| relational_expression LE_OP shift_expression
+	| relational_expression GE_OP shift_expression
+	;
+
+equality_expression
+	: relational_expression
+	| equality_expression EQ_OP relational_expression
+	| equality_expression NE_OP relational_expression
+	;
+
+and_expression
+	: equality_expression
+	| and_expression '&' equality_expression
+	;
+
+exclusive_or_expression
+	: and_expression
+	| exclusive_or_expression '^' and_expression
+	;
+
+inclusive_or_expression
+	: exclusive_or_expression
+	| inclusive_or_expression '|' exclusive_or_expression
+	;
+
+logical_and_expression
+	: inclusive_or_expression
+	| logical_and_expression AND_OP inclusive_or_expression
+	;
+
+logical_or_expression
+	: logical_and_expression
+	| logical_or_expression OR_OP logical_and_expression
+	;
+
+conditional_expression
+	: logical_or_expression
+	| logical_or_expression '?' expression ':' conditional_expression
+	;
+
+assignment_expression
+	: conditional_expression
+	| unary_expression assignment_operator assignment_expression
+	;
+
+assignment_operator
+	: '='
+	| MUL_ASSIGN
+	| DIV_ASSIGN
+	| MOD_ASSIGN
+	| ADD_ASSIGN
+	| SUB_ASSIGN
+	| LEFT_ASSIGN
+	| RIGHT_ASSIGN
+	| AND_ASSIGN
+	| XOR_ASSIGN
+	| OR_ASSIGN
+	;
+
+expression
+	: assignment_expression
+	| expression ',' assignment_expression
+	;
+
+constant_expression
+	: conditional_expression	/* with constraints */
+	;
+
+declaration
+	: declaration_specifiers ';'
+	| declaration_specifiers init_declarator_list ';'
+	| static_assert_declaration
+	;
+
+declaration_specifiers
+	: storage_class_specifier declaration_specifiers
+	| storage_class_specifier
+	| type_specifier declaration_specifiers
+	| type_specifier
+	| type_qualifier declaration_specifiers
+	| type_qualifier
+	| function_specifier declaration_specifiers
+	| function_specifier
+	| alignment_specifier declaration_specifiers
+	| alignment_specifier
+	;
+
+init_declarator_list
+	: init_declarator
+	| init_declarator_list ',' init_declarator
+	;
+
+init_declarator
+	: declarator '=' initializer
+	| declarator
+	;
+
+storage_class_specifier
+	: TYPEDEF	/* identifiers must be flagged as TYPEDEF_NAME */
+	| EXTERN
+	| STATIC
+	| THREAD_LOCAL
+	| AUTO
+	| REGISTER
+	;
+
+type_specifier
+	: VOID
+	| CHAR
+	| SHORT
+	| INT
+	| LONG
+	| FLOAT
+	| DOUBLE
+	| SIGNED
+	| UNSIGNED
+	| BOOL
+	| COMPLEX
+	| IMAGINARY	  	/* non-mandated extension */
+	| atomic_type_specifier
+	| struct_or_union_specifier
+	| enum_specifier
+	| TYPEDEF_NAME		/* after it has been defined as such */
+	;
+
+struct_or_union_specifier
+	: struct_or_union '{' struct_declaration_list '}'
+	| struct_or_union IDENTIFIER '{' struct_declaration_list '}'
+	| struct_or_union IDENTIFIER
+	;
+
+struct_or_union
+	: STRUCT
+	| UNION
+	;
+
+struct_declaration_list
+	: struct_declaration
+	| struct_declaration_list struct_declaration
+	;
+
+struct_declaration
+	: specifier_qualifier_list ';'	/* for anonymous struct/union */
+	| specifier_qualifier_list struct_declarator_list ';'
+	| static_assert_declaration
+	;
+
+specifier_qualifier_list
+	: type_specifier specifier_qualifier_list
+	| type_specifier
+	| type_qualifier specifier_qualifier_list
+	| type_qualifier
+	;
+
+struct_declarator_list
+	: struct_declarator
+	| struct_declarator_list ',' struct_declarator
+	;
+
+struct_declarator
+	: ':' constant_expression
+	| declarator ':' constant_expression
+	| declarator
+	;
+
+enum_specifier
+	: ENUM '{' enumerator_list '}'
+	| ENUM '{' enumerator_list ',' '}'
+	| ENUM IDENTIFIER '{' enumerator_list '}'
+	| ENUM IDENTIFIER '{' enumerator_list ',' '}'
+	| ENUM IDENTIFIER
+	;
+
+enumerator_list
+	: enumerator
+	| enumerator_list ',' enumerator
+	;
+
+enumerator	/* identifiers must be flagged as ENUMERATION_CONSTANT */
+	: enumeration_constant '=' constant_expression
+	| enumeration_constant
+	;
+
+atomic_type_specifier
+	: ATOMIC '(' type_name ')'
+	;
+
+type_qualifier
+	: CONST
+	| RESTRICT
+	| VOLATILE
+	| ATOMIC
+	;
+
+function_specifier
+	: INLINE
+	| NORETURN
+	;
+
+alignment_specifier
+	: ALIGNAS '(' type_name ')'
+	| ALIGNAS '(' constant_expression ')'
+	;
+
+declarator
+	: pointer direct_declarator
+	| direct_declarator
+	;
+
+direct_declarator
+	: IDENTIFIER
+	| '(' declarator ')'
+	| direct_declarator '[' ']'
+	| direct_declarator '[' '*' ']'
+	| direct_declarator '[' STATIC type_qualifier_list assignment_expression ']'
+	| direct_declarator '[' STATIC assignment_expression ']'
+	| direct_declarator '[' type_qualifier_list '*' ']'
+	| direct_declarator '[' type_qualifier_list STATIC assignment_expression ']'
+	| direct_declarator '[' type_qualifier_list assignment_expression ']'
+	| direct_declarator '[' type_qualifier_list ']'
+	| direct_declarator '[' assignment_expression ']'
+	| direct_declarator '(' parameter_type_list ')'
+	| direct_declarator '(' ')'
+	| direct_declarator '(' identifier_list ')'
+	;
+
+pointer
+	: '*' type_qualifier_list pointer
+	| '*' type_qualifier_list
+	| '*' pointer
+	| '*'
+	;
+
+type_qualifier_list
+	: type_qualifier
+	| type_qualifier_list type_qualifier
+	;
+
+
+parameter_type_list
+	: parameter_list ',' ELLIPSIS
+	| parameter_list
+	;
+
+parameter_list
+	: parameter_declaration
+	| parameter_list ',' parameter_declaration
+	;
+
+parameter_declaration
+	: declaration_specifiers declarator
+	| declaration_specifiers abstract_declarator
+	| declaration_specifiers
+	;
+
+identifier_list
+	: IDENTIFIER
+	| identifier_list ',' IDENTIFIER
+	;
+
+type_name
+	: specifier_qualifier_list abstract_declarator
+	| specifier_qualifier_list
+	;
+
+abstract_declarator
+	: pointer direct_abstract_declarator
+	| pointer
+	| direct_abstract_declarator
+	;
+
+direct_abstract_declarator
+	: '(' abstract_declarator ')'
+	| '[' ']'
+	| '[' '*' ']'
+	| '[' STATIC type_qualifier_list assignment_expression ']'
+	| '[' STATIC assignment_expression ']'
+	| '[' type_qualifier_list STATIC assignment_expression ']'
+	| '[' type_qualifier_list assignment_expression ']'
+	| '[' type_qualifier_list ']'
+	| '[' assignment_expression ']'
+	| direct_abstract_declarator '[' ']'
+	| direct_abstract_declarator '[' '*' ']'
+	| direct_abstract_declarator '[' STATIC type_qualifier_list assignment_expression ']'
+	| direct_abstract_declarator '[' STATIC assignment_expression ']'
+	| direct_abstract_declarator '[' type_qualifier_list assignment_expression ']'
+	| direct_abstract_declarator '[' type_qualifier_list STATIC assignment_expression ']'
+	| direct_abstract_declarator '[' type_qualifier_list ']'
+	| direct_abstract_declarator '[' assignment_expression ']'
+	| '(' ')'
+	| '(' parameter_type_list ')'
+	| direct_abstract_declarator '(' ')'
+	| direct_abstract_declarator '(' parameter_type_list ')'
+	;
+
+initializer
+	: '{' initializer_list '}'
+	| '{' initializer_list ',' '}'
+	| assignment_expression
+	;
+
+initializer_list
+	: designation initializer
+	| initializer
+	| initializer_list ',' designation initializer
+	| initializer_list ',' initializer
+	;
+
+designation
+	: designator_list '='
+	;
+
+designator_list
+	: designator
+	| designator_list designator
+	;
+
+designator
+	: '[' constant_expression ']'
+	| '.' IDENTIFIER
+	;
+
+static_assert_declaration
+	: STATIC_ASSERT '(' constant_expression ',' STRING_LITERAL ')' ';'
+	;
+
+statement
+	: labeled_statement
+	| compound_statement
+	| expression_statement
+	| selection_statement
+	| iteration_statement
+	| jump_statement
+	;
+
+labeled_statement
+	: IDENTIFIER ':' statement
+	| CASE constant_expression ':' statement
+	| DEFAULT ':' statement
+	;
+
+compound_statement
+	: '{' '}'
+	| '{'  block_item_list '}'
+	;
+
+block_item_list
+	: block_item
+	| block_item_list block_item
+	;
+
+block_item
+	: declaration
+	| statement
+	;
+
+expression_statement
+	: ';'
+	| expression ';'
+	;
+
+selection_statement
+	: IF '(' expression ')' statement ELSE statement
+	| IF '(' expression ')' statement
+	| SWITCH '(' expression ')' statement
+	;
+
+iteration_statement
+	: WHILE '(' expression ')' statement
+	| DO statement WHILE '(' expression ')' ';'
+	| FOR '(' expression_statement expression_statement ')' statement
+	| FOR '(' expression_statement expression_statement expression ')' statement
+	| FOR '(' declaration expression_statement ')' statement
+	| FOR '(' declaration expression_statement expression ')' statement
+	;
+
+jump_statement
+	: GOTO IDENTIFIER ';'
+	| CONTINUE ';'
+	| BREAK ';'
+	| RETURN ';'
+	| RETURN expression ';'
+	;
+
+translation_unit
+	: external_declaration
+	| translation_unit external_declaration
+	;
+
+external_declaration
+	: function_definition
+	| declaration
+	;
+
+function_definition
+	: declaration_specifiers declarator declaration_list compound_statement
+	| declaration_specifiers declarator compound_statement
+	;
+
+declaration_list
+	: declaration
+	| declaration_list declaration
+	;
 
 %%
 
