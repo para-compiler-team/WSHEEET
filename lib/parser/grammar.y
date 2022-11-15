@@ -77,8 +77,13 @@ parser::token_type yylex(parser::semantic_type* yylval,
 
 %start translation_unit
 
-%%
+// for x.x & x.x() parcing
+%precedence IDENTIFIER
+/* %precedence ':' */
+%precedence '('
 
+%%
+// node
 primary_expression
 	: IDENTIFIER
 	| constant
@@ -107,21 +112,22 @@ string
 	: GENERIC '(' assignment_expression ',' generic_assoc_list ')'
 	; */
 
-generic_assoc_list
+/* generic_assoc_list
 	: generic_association
 	| generic_assoc_list ',' generic_association
-	;
+	; */
 
-generic_association
+/* generic_association
 	: type_name ':' assignment_expression
-	/* | DEFAULT ':' assignment_expression */
-	;
+	| DEFAULT ':' assignment_expression
+	; */
 
 postfix_expression
 	: primary_expression
 	| postfix_expression '[' expression ']'
 	| postfix_expression '(' ')'
 	| postfix_expression '(' argument_expression_list ')'
+	| postfix_expression '.' IDENTIFIER '(' argument_expression_list ')' // paraSL
 	| postfix_expression '.' IDENTIFIER
 	/* | postfix_expression PTR_OP IDENTIFIER */
 	| postfix_expression INC_OP
@@ -146,17 +152,17 @@ unary_expression
 	;
 
 unary_operator
-	: '&'
-	| '*'
-	| '+'
+	: '+'
 	| '-'
 	| '~'
 	| '!'
+	/* : '&' */
+	/* | '*' */
 	;
 
 cast_expression
 	: unary_expression
-	| '(' type_name ')' cast_expression
+	/* | '(' type_name ')' cast_expression */
 	;
 
 multiplicative_expression
@@ -219,7 +225,7 @@ logical_or_expression
 
 conditional_expression
 	: logical_or_expression
-	| logical_or_expression '?' expression ':' conditional_expression
+	/* | logical_or_expression '?' expression ':' conditional_expression */
 	;
 
 assignment_expression
@@ -250,17 +256,20 @@ constant_expression
 	: conditional_expression	// with constraints
 	;
 
+// decl statement
 declaration
-	: declaration_specifiers ';'
-	| declaration_specifiers init_declarator_list ';'
+	: init_declarator_list ';'
+	/* : declaration_specifiers ';' */
 	/* | static_assert_declaration */
 	;
-
+	
+/* int, double, ... */
 declaration_specifiers
-	: type_specifier declaration_specifiers
+	: type_specifier
+	/* : type_specifier declaration_specifiers */
 	/* : storage_class_specifier declaration_specifiers */
 	/* | storage_class_specifier */
-	| type_specifier
+	
 	/* | type_qualifier declaration_specifiers */
 	/* | type_qualifier */
 	/* | function_specifier declaration_specifiers */
@@ -275,8 +284,13 @@ init_declarator_list
 	;
 
 init_declarator
-	: declarator '=' initializer
-	| declarator
+	: declarator_and_specifiers
+	| declarator_and_specifiers '=' initializer
+	;
+
+declarator_and_specifiers
+	: declarator
+	| declarator ':' declaration_specifiers
 	;
 
 /* storage_class_specifier
@@ -391,6 +405,7 @@ declarator
 	/* : pointer direct_declarator */
 	;
 
+// var, array_elem, ...
 direct_declarator
 	: IDENTIFIER
 	| '(' declarator ')'
@@ -552,10 +567,10 @@ selection_statement
 iteration_statement
 	: WHILE '(' expression ')' statement
 	/* | DO statement WHILE '(' expression ')' ';' */
-	| FOR '(' expression_statement expression_statement ')' statement
-	| FOR '(' expression_statement expression_statement expression ')' statement
-	| FOR '(' declaration expression_statement ')' statement
-	| FOR '(' declaration expression_statement expression ')' statement
+	/* | FOR '(' expression_statement expression_statement ')' statement */
+	/* | FOR '(' expression_statement expression_statement expression ')' statement */
+	/* | FOR '(' declaration expression_statement ')' statement */
+	/* | FOR '(' declaration expression_statement expression ')' statement */
 	;
 
 jump_statement
@@ -565,15 +580,15 @@ jump_statement
 	| BREAK ';' */
 	| RETURN expression ';'
 	;
-
+/* =============================================================== */
 translation_unit
 	: external_declaration
 	| translation_unit external_declaration
 	;
 
-external_declaration
-	: function_definition
-	| declaration
+external_declaration:
+	/* function_definition */
+	 declaration
 	;
 
 function_definition

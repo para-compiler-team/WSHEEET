@@ -15,7 +15,7 @@ flex_target(scanner
 bison_target(parser
   ${GRAMMAR}
   ${CMAKE_CURRENT_BINARY_DIR}/parser.cc
-  COMPILE_FLAGS "--defines=${CMAKE_CURRENT_BINARY_DIR}/grammar.tab.hh -Wcounterexamples --debug")
+  COMPILE_FLAGS "--defines=${CMAKE_CURRENT_BINARY_DIR}/grammar.tab.hh -Wcounterexamples --debug -g")
 
 add_flex_bison_dependency(scanner parser)
 
