@@ -550,7 +550,7 @@ block_item_list
 
 block_item
 	: declaration
-	| statement
+	/* | statement */
 	;
 
 expression_statement
@@ -588,7 +588,13 @@ translation_unit
 
 external_declaration:
 	/* function_definition */
-	 declaration
+	/*| declaration */
+	layer_definition
+	;
+
+layer_definition:
+	LAYER '(' I_CONSTANT ',' STRING_LITERAL ')' compound_statement
+	| compound_statement
 	;
 
 function_definition
