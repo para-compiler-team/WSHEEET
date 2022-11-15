@@ -42,8 +42,8 @@ class Lexer : public yyFlexLexer {
         switch (sym_type(yytext)) {
         case token_type::TYPEDEF_NAME: /* previously defined */
             return token_type::TYPEDEF_NAME;
-        case token_type::ENUMERATION_CONSTANT: /* previously defined */
-            return token_type::ENUMERATION_CONSTANT;
+        // case token_type::ENUMERATION_CONSTANT: /* previously defined */
+            // return token_type::ENUMERATION_CONSTANT;
         default: /* includes undefined */
             return token_type::IDENTIFIER;
         }
