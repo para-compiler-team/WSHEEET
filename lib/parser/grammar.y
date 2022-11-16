@@ -78,22 +78,58 @@ parser::token_type yylex(parser::semantic_type* yylval,
 %start translation_unit
 
 // for x.x & x.x() parcing
-%precedence IDENTIFIER
+/* %precedence IDENTIFIER */
 /* %precedence ':' */
-%precedence '('
-
+/* %precedence '(' */
+%left IDENTIFIER
 
 // for fixing conflicts in direct_declarator
 %left ':'
 
+%right '='
+%right MUL_ASSIGN
+%right DIV_ASSIGN
+%right MOD_ASSIGN
+%right ADD_ASSIGN
+%right SUB_ASSIGN
+%right LEFT_ASSIGN
+%right RIGHT_ASSIGN
+%right AND_ASSIGN
+%right XOR_ASSIGN
+%right OR_ASSIGN
+
 %%
 // node
+primary_assignable_expression
+	: IDENTIFIER
+	| IDENTIFIER '.' primary_assignable_expression
+	/* | primary_assignable_expression '[' expression ']' */
+	| primary_assignable_expression '[' ']'
+	;
+
+nucleus_primary_expression
+	: constant
+	| string
+	;
+
 primary_expression
 	: IDENTIFIER
-	| constant
-	| string
-	| '(' expression ')'
+	/* | constant */
+	/* | string */
+	/* | INPUT '(' I_CONSTANT INLINE_RANGE I_CONSTANT ')' */
+	/* | INPUT '(' I_CONSTANT ')' */
+	/* | '(' expression ')' */
 	/* | generic_selection */
+	;
+
+builin_primary_expression
+	: INPUT '(' I_CONSTANT INLINE_RANGE I_CONSTANT ')'
+	| INPUT '(' I_CONSTANT INLINE_RANGE I_CONSTANT ')' ':' type_specifier
+	| INPUT '(' I_CONSTANT ')' ':' type_specifier
+	| INPUT '(' I_CONSTANT ')'
+	| REPEAT '(' primary_expression ',' expression ')'
+	/* | GLUE '(' argument_expression_list ')' */
+	/* | GLUE '(' glue_expression_list2 ')' */
 	;
 
 constant
@@ -126,17 +162,27 @@ string
 	| DEFAULT ':' assignment_expression
 	; */
 
-postfix_expression
+composite_primary_expression
 	: primary_expression
-	| postfix_expression '[' expression ']'
-	| postfix_expression '(' ')'
-	| postfix_expression '(' argument_expression_list ')'
-	| postfix_expression '.' IDENTIFIER '(' argument_expression_list ')' // paraSL
-	| postfix_expression '.' IDENTIFIER
+	/* | builin_primary_expression */
+	/* | composite_primary_expression '[' expression ']' */
+	| composite_primary_expression '[' ']'
+	| composite_primary_expression '(' ')'
+	/* | composite_primary_expression '(' argument_expression_list ')' */
+	| composite_primary_expression '.' IDENTIFIER // paraSL
 	/* | postfix_expression PTR_OP IDENTIFIER */
-	| postfix_expression INC_OP
-	| postfix_expression DEC_OP
-	//| '(' type_name ')' '{' initializer_list '}'
+	;
+
+single_expression
+	: nucleus_primary_expression
+	| composite_primary_expression
+	;
+
+postfix_expression_or_single
+	: single_expression
+	| single_expression INC_OP
+	| single_expression DEC_OP
+	/* | '(' type_name ')' '{' initializer_list '}' */
 	//| '(' type_name ')' '{' initializer_list ',' '}'
 	;
 
@@ -146,7 +192,7 @@ argument_expression_list
 	;
 
 unary_expression
-	: postfix_expression
+	: postfix_expression_or_single
 	| INC_OP unary_expression
 	| DEC_OP unary_expression
 	| unary_operator cast_expression
@@ -232,10 +278,29 @@ conditional_expression
 	/* | logical_or_expression '?' expression ':' conditional_expression */
 	;
 
-assignment_expression
-	: conditional_expression
-	| unary_expression assignment_operator assignment_expression
+rval_expression
+	: conditional_expression	// with constraints
 	;
+
+assignment_expression
+	: rval_expression
+	/* | builtin_rval_expression */
+	| '{' initialyzer_list '}'
+	| composite_primary_expression assignment_operator assignment_expression
+	/* |  unary_expression ... ... // так работает */
+	;
+
+builtin_rval_expression
+	: 
+	;
+
+initialyzer_list
+	: expression
+	| initialyzer_list ',' expression
+
+func_arguments_decllist
+	: IDENTIFIER
+	| IDENTIFIER ':' type_specifier
 
 assignment_operator
 	: '='
@@ -253,11 +318,7 @@ assignment_operator
 
 expression
 	: assignment_expression
-	| expression ',' assignment_expression
-	;
-
-constant_expression
-	: conditional_expression	// with constraints
+	/* | expression ',' assignment_expression */
 	;
 
 // decl statement
@@ -306,23 +367,15 @@ declarator_and_specifiers
 	| REGISTER
 	; */
 
-type_specifier
+basic_type_specifier
 	: INT
-	/* : VOID */
-	/* | CHAR */
-	/* | SHORT */
-	/* | LONG */
+	| CHAR
 	| FLOAT
 	| DOUBLE
-	/* | SIGNED */
-	/* | UNSIGNED */
-	/* | BOOL */
-	/* | COMPLEX */
-	/* | IMAGINARY */
-	/* | atomic_type_specifier */
-	/* | struct_or_union_specifier */
-	/* | enum_specifier */
-	| TYPEDEF_NAME		// after it has been defined as such
+	;
+
+type_specifier
+	: basic_type_specifier
 	;
 
 /* struct_or_union_specifier
@@ -336,16 +389,16 @@ type_specifier
 	| UNION
 	; */
 
-struct_declaration_list
+/* struct_declaration_list
 	: struct_declaration
 	| struct_declaration_list struct_declaration
-	;
+	; */
 
-struct_declaration
+/* struct_declaration
 	: specifier_qualifier_list ';'	// for anonymous struct/union
 	| specifier_qualifier_list struct_declarator_list ';'
-	/* | static_assert_declaration */
-	;
+	// | static_assert_declaration
+	; */
 
 specifier_qualifier_list
 	: type_specifier specifier_qualifier_list
@@ -354,16 +407,16 @@ specifier_qualifier_list
 	/* | type_qualifier */
 	;
 
-struct_declarator_list
+/* struct_declarator_list
 	: struct_declarator
 	| struct_declarator_list ',' struct_declarator
-	;
+	; */
 
-struct_declarator
+/* struct_declarator
 	: ':' constant_expression
 	| declarator ':' constant_expression
 	| declarator
-	;
+	; */
 
 /* enum_specifier
 	: ENUM '{' enumerator_list '}'
@@ -423,14 +476,34 @@ direct_declarator:
 	/* | direct_declarator '[' type_qualifier_list assignment_expression ']' */
 	/* | direct_declarator '[' type_qualifier_list ']' */
 	/* | direct_declarator '[' assignment_expression ']' */
-	| IDENTIFIER ':' '(' parameter_type_list ')' // for paraSL functions
-	| IDENTIFIER ':' '(' parameter_type_list ')' ':' type_specifier // for paraSL functions
-	| IDENTIFIER ':' '(' ')' // for paraSL functions
-	| IDENTIFIER ':' '(' ')' ':' type_specifier // for paraSL functions
-	| IDENTIFIER '(' identifier_list ')' // for paraSL functions usage
-	| IDENTIFIER '(' ')' // for paraSL functions usage
-	| IDENTIFIER ':' '{' identifier_list '}'
+	/* | IDENTIFIER ':' '(' function_arg_decl_list ')' // for paraSL functions */
+	/* | IDENTIFIER ':' '(' function_arg_decl_list ')' ':' type_specifier // for paraSL functions */
+	/* | IDENTIFIER ':' '(' ')' // for paraSL functions */
+	/* | IDENTIFIER ':' '(' ')' ':' type_specifier // for paraSL functions */
+	/* | IDENTIFIER '(' identifier_list ')' // for paraSL functions usage */
+	/* | IDENTIFIER '(' ')' // for paraSL functions usage */
+	/* | IDENTIFIER ':' '{' identifier_list '}' */
+	/* | implicit_declarator */
 	;
+
+implicit_declarator
+	: IDENTIFIER
+	| IDENTIFIER '.' primary_assignable_expression
+	| primary_assignable_expression '[' expression ']'
+	;
+
+function_arg_decl_list
+	: function_arg_decl
+	| function_arg_decl_list ',' function_arg_decl
+	;
+
+function_arg_decl
+	: IDENTIFIER ':' type_specifier
+	| IDENTIFIER
+	;
+
+function_parameter_usage_list
+	:
 
 /* pointer
 	: '*' type_qualifier_list pointer
@@ -502,20 +575,20 @@ identifier_list
 	| direct_abstract_declarator '(' parameter_type_list ')'
 	; */
 
-initializer
-	: '{' initializer_list '}'
-	| '{' initializer_list ',' '}'
-	| assignment_expression
+initializer:
+	/* : '{' initializer_list '}' */
+	/* | '{' initializer_list ',' '}' */
+	  assignment_expression
 	;
 
-initializer_list
+/* initializer_list
 	: designation initializer
 	| initializer
 	| initializer_list ',' designation initializer
 	| initializer_list ',' initializer
-	;
+	; */
 
-designation
+/* designation
 	: designator_list '='
 	;
 
@@ -527,7 +600,7 @@ designator_list
 designator
 	: '[' constant_expression ']'
 	| '.' IDENTIFIER
-	;
+	; */
 
 /* static_assert_declaration
 	: STATIC_ASSERT '(' constant_expression ',' STRING_LITERAL ')' ';'
@@ -554,12 +627,15 @@ compound_statement
 	;
 
 block_item_list
-	: block_item
+	: block_item ';'
 	| block_item_list block_item
 	;
-
+/* =====================================================================*/
 block_item
-	: declaration
+	: composite_primary_expression assignment_operator assignment_expression
+	| composite_primary_expression
+	| direct_declarator '=' assignment_expression
+	/* : declaration */
 	/* | statement */
 	;
 
