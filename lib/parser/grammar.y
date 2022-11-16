@@ -82,6 +82,10 @@ parser::token_type yylex(parser::semantic_type* yylval,
 /* %precedence ':' */
 %precedence '('
 
+
+// for fixing conflicts in direct_declarator
+%left ':'
+
 %%
 // node
 primary_expression
@@ -132,8 +136,8 @@ postfix_expression
 	/* | postfix_expression PTR_OP IDENTIFIER */
 	| postfix_expression INC_OP
 	| postfix_expression DEC_OP
-	| '(' type_name ')' '{' initializer_list '}'
-	| '(' type_name ')' '{' initializer_list ',' '}'
+	//| '(' type_name ')' '{' initializer_list '}'
+	//| '(' type_name ')' '{' initializer_list ',' '}'
 	;
 
 argument_expression_list
@@ -280,7 +284,7 @@ declaration_specifiers
 
 init_declarator_list
 	: init_declarator
-	| init_declarator_list ',' init_declarator
+	/* | init_declarator_list ',' init_declarator */
 	;
 
 init_declarator
@@ -290,7 +294,7 @@ init_declarator
 
 declarator_and_specifiers
 	: declarator
-	| declarator ':' declaration_specifiers
+	/* | declarator ':' type_specifier */
 	;
 
 /* storage_class_specifier
@@ -406,21 +410,26 @@ declarator
 	;
 
 // var, array_elem, ...
-direct_declarator
-	: IDENTIFIER
-	| '(' declarator ')'
-	| direct_declarator '[' ']'
-	| direct_declarator '[' '*' ']'
+direct_declarator:
+	 /* IDENTIFIER {std::cout << "id" << std::endl;} */
+	 IDENTIFIER ':' type_specifier {std::cout << "here" << std::endl;}
+	/* | '(' declarator ')' // ???? */
+	/* | direct_declarator '[' ']' */
+	/* | direct_declarator '[' '*' ']' */
 	/* | direct_declarator '[' STATIC type_qualifier_list assignment_expression ']' */
 	/* | direct_declarator '[' STATIC assignment_expression ']' */
 	/* | direct_declarator '[' type_qualifier_list '*' ']' */
 	/* | direct_declarator '[' type_qualifier_list STATIC assignment_expression ']' */
 	/* | direct_declarator '[' type_qualifier_list assignment_expression ']' */
 	/* | direct_declarator '[' type_qualifier_list ']' */
-	| direct_declarator '[' assignment_expression ']'
-	| direct_declarator '(' parameter_type_list ')'
-	| direct_declarator '(' ')'
-	| direct_declarator '(' identifier_list ')'
+	/* | direct_declarator '[' assignment_expression ']' */
+	| IDENTIFIER ':' '(' parameter_type_list ')' // for paraSL functions
+	| IDENTIFIER ':' '(' parameter_type_list ')' ':' type_specifier // for paraSL functions
+	| IDENTIFIER ':' '(' ')' // for paraSL functions
+	| IDENTIFIER ':' '(' ')' ':' type_specifier // for paraSL functions
+	| IDENTIFIER '(' identifier_list ')' // for paraSL functions usage
+	| IDENTIFIER '(' ')' // for paraSL functions usage
+	| IDENTIFIER ':' '{' identifier_list '}'
 	;
 
 /* pointer
@@ -447,9 +456,10 @@ parameter_list
 	;
 
 parameter_declaration
-	: declaration_specifiers declarator
-	| declaration_specifiers abstract_declarator
-	| declaration_specifiers
+	: declarator
+	/* : declaration_specifiers declarator */
+	/* | declaration_specifiers abstract_declarator */
+	/* | declaration_specifiers */
 	;
 
 identifier_list
@@ -457,40 +467,40 @@ identifier_list
 	| identifier_list ',' IDENTIFIER
 	;
 
-type_name
+/* type_name
 	: specifier_qualifier_list abstract_declarator
 	| specifier_qualifier_list
-	;
+	; */
 
-abstract_declarator
+/* abstract_declarator
 	: direct_abstract_declarator
-	/* : pointer direct_abstract_declarator
-	| pointer */
-	;
+	: pointer direct_abstract_declarator
+	| pointer
+	; */
 
-direct_abstract_declarator
+/* direct_abstract_declarator
 	: '(' abstract_declarator ')'
 	| '[' ']'
 	| '[' '*' ']'
-	/* | '[' STATIC type_qualifier_list assignment_expression ']' */
-	/* | '[' STATIC assignment_expression ']' */
-	/* | '[' type_qualifier_list STATIC assignment_expression ']' */
-	/* | '[' type_qualifier_list assignment_expression ']' */
-	/* | '[' type_qualifier_list ']' */
+	//| '[' STATIC type_qualifier_list assignment_expression ']'
+	//| '[' STATIC assignment_expression ']'
+	//| '[' type_qualifier_list STATIC assignment_expression ']'
+	//| '[' type_qualifier_list assignment_expression ']'
+	//| '[' type_qualifier_list ']'
 	| '[' assignment_expression ']'
 	| direct_abstract_declarator '[' ']'
 	| direct_abstract_declarator '[' '*' ']'
-	/* | direct_abstract_declarator '[' STATIC type_qualifier_list assignment_expression ']' */
-	/* | direct_abstract_declarator '[' STATIC assignment_expression ']' */
-	/* | direct_abstract_declarator '[' type_qualifier_list assignment_expression ']' */
-	/* | direct_abstract_declarator '[' type_qualifier_list STATIC assignment_expression ']' */
-	/* | direct_abstract_declarator '[' type_qualifier_list ']' */
+	//| direct_abstract_declarator '[' STATIC type_qualifier_list assignment_expression ']'
+	//| direct_abstract_declarator '[' STATIC assignment_expression ']'
+	//| direct_abstract_declarator '[' type_qualifier_list assignment_expression ']'
+	//| direct_abstract_declarator '[' type_qualifier_list STATIC assignment_expression ']'
+	//| direct_abstract_declarator '[' type_qualifier_list ']'
 	| direct_abstract_declarator '[' assignment_expression ']'
 	| '(' ')'
 	| '(' parameter_type_list ')'
 	| direct_abstract_declarator '(' ')'
 	| direct_abstract_declarator '(' parameter_type_list ')'
-	;
+	; */
 
 initializer
 	: '{' initializer_list '}'
@@ -523,13 +533,13 @@ designator
 	: STATIC_ASSERT '(' constant_expression ',' STRING_LITERAL ')' ';'
 	; */
 
-statement
-	: labeled_statement
-	| compound_statement
+statement:
+	/* labeled_statement */
+	 compound_statement
 	| expression_statement
-	| selection_statement
-	| iteration_statement
-	| jump_statement
+	/* | selection_statement */
+	/* | iteration_statement */
+	/* | jump_statement */
 	;
 
 labeled_statement
