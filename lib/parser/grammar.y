@@ -73,7 +73,7 @@ parser::token_type yylex(parser::semantic_type* yylval,
 
 /* %token	ALIGNAS ALIGNOF ATOMIC GENERIC NORETURN STATIC_ASSERT THREAD_LOCAL */
 
-%token INLINE_RANGE LAYER, INPUT, OUTPUT, REPEAT, GLUE, BIND
+%token INLINE_RANGE LAYER, INPUT, OUTPUT, REPEAT, GLUE, BIND, VECTOR
 
 %start translation_unit
 
@@ -162,20 +162,26 @@ string
 	| DEFAULT ':' assignment_expression
 	; */
 
-composite_primary_expression
+composite_primary_expression_without_braces
 	: primary_expression
 	/* | builin_primary_expression */
 	/* | composite_primary_expression '[' expression ']' */
-	| composite_primary_expression '[' ']'
-	| composite_primary_expression '(' ')'
+	| composite_primary_expression '[' expression ']'
 	/* | composite_primary_expression '(' argument_expression_list ')' */
 	| composite_primary_expression '.' IDENTIFIER // paraSL
 	/* | postfix_expression PTR_OP IDENTIFIER */
 	;
 
+composite_primary_expression
+	: composite_primary_expression_without_braces
+	| composite_primary_expression '(' initialyzer_list ')'
+	;
+
 single_expression
 	: nucleus_primary_expression
 	| composite_primary_expression
+	| INPUT '(' I_CONSTANT ')' ':' type_specifier // ?????
+	| INPUT '(' I_CONSTANT ')' // ??????
 	;
 
 postfix_expression_or_single
@@ -215,11 +221,16 @@ cast_expression
 	/* | '(' type_name ')' cast_expression */
 	;
 
-multiplicative_expression
+premul_expression
 	: cast_expression
-	| multiplicative_expression '*' cast_expression
-	| multiplicative_expression '/' cast_expression
-	| multiplicative_expression '%' cast_expression
+	| '(' expression ')'
+	;
+
+multiplicative_expression
+	: premul_expression
+	| multiplicative_expression '*' premul_expression
+	| multiplicative_expression '/' premul_expression
+	| multiplicative_expression '%' premul_expression
 	;
 
 additive_expression
@@ -285,22 +296,35 @@ rval_expression
 assignment_expression
 	: rval_expression
 	/* | builtin_rval_expression */
-	| '{' initialyzer_list '}'
-	| composite_primary_expression assignment_operator assignment_expression
+	/* | '{' initialyzer_list '}' */
+	| composite_primary_expression_without_braces assignment_operator assignment_expression
 	/* |  unary_expression ... ... // так работает */
 	;
 
 builtin_rval_expression
-	: 
+	: glue_rval
+	| repeat_rval
 	;
+
+repeat_rval
+	: REPEAT '(' expression ',' expression ')'
+
+glue_rval
+	: GLUE '(' glue_initialyzer_list ')'
+
+glue_initialyzer_list
+	: expression
+	| glue_initialyzer_list ',' expression
 
 initialyzer_list
 	: expression
 	| initialyzer_list ',' expression
+	| %empty
 
 func_arguments_decllist
 	: IDENTIFIER
 	| IDENTIFIER ':' type_specifier
+	| %empty
 
 assignment_operator
 	: '='
@@ -369,13 +393,20 @@ declarator_and_specifiers
 
 basic_type_specifier
 	: INT
+	| INT '(' expression ')'
 	| CHAR
 	| FLOAT
 	| DOUBLE
 	;
 
-type_specifier
+common_type_specifier
 	: basic_type_specifier
+	| basic_type_specifier '[' expression ']'
+	;
+	
+type_specifier
+	: common_type_specifier
+	| VECTOR '<' I_CONSTANT ',' type_specifier '>'
 	;
 
 /* struct_or_union_specifier
@@ -466,6 +497,7 @@ declarator
 direct_declarator:
 	 /* IDENTIFIER {std::cout << "id" << std::endl;} */
 	 IDENTIFIER ':' type_specifier {std::cout << "here" << std::endl;}
+
 	/* | '(' declarator ')' // ???? */
 	/* | direct_declarator '[' ']' */
 	/* | direct_declarator '[' '*' ']' */
@@ -476,8 +508,8 @@ direct_declarator:
 	/* | direct_declarator '[' type_qualifier_list assignment_expression ']' */
 	/* | direct_declarator '[' type_qualifier_list ']' */
 	/* | direct_declarator '[' assignment_expression ']' */
-	/* | IDENTIFIER ':' '(' function_arg_decl_list ')' // for paraSL functions */
-	/* | IDENTIFIER ':' '(' function_arg_decl_list ')' ':' type_specifier // for paraSL functions */
+	| IDENTIFIER ':' '(' func_arguments_decllist ')' // for paraSL functions
+	| IDENTIFIER ':' '(' func_arguments_decllist ')' ':' type_specifier // for paraSL functions
 	/* | IDENTIFIER ':' '(' ')' // for paraSL functions */
 	/* | IDENTIFIER ':' '(' ')' ':' type_specifier // for paraSL functions */
 	/* | IDENTIFIER '(' identifier_list ')' // for paraSL functions usage */
@@ -632,7 +664,7 @@ block_item_list
 	;
 /* =====================================================================*/
 block_item
-	: composite_primary_expression assignment_operator assignment_expression
+	: composite_primary_expression_without_braces assignment_operator assignment_expression
 	| composite_primary_expression
 	| direct_declarator '=' assignment_expression
 	/* : declaration */

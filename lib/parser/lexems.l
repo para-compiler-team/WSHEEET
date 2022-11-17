@@ -53,6 +53,7 @@ WS  [ \t\v\n\f]
 "repeat"                       { lxWrap(yytext); return token_type::REPEAT; }
 "glue"                         { lxWrap(yytext); return token_type::GLUE; }
 "bind"                         { lxWrap(yytext); return token_type::BIND; }
+"vector"                       { lxWrap(yytext); return token_type::VECTOR;}
 
 {L}{A}*					{ lxWrap(yytext); return check_type(); }
 
