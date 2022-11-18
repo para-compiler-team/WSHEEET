@@ -73,7 +73,7 @@ parser::token_type yylex(parser::semantic_type* yylval,
 
 /* %token	ALIGNAS ALIGNOF ATOMIC GENERIC NORETURN STATIC_ASSERT THREAD_LOCAL */
 
-%token INLINE_RANGE LAYER, INPUT, OUTPUT, REPEAT, GLUE, BIND, VECTOR
+%token INLINE_RANGE LAYER, INPUT, OUTPUT, REPEAT, GLUE, BIND, VECTOR, IN
 
 %start translation_unit
 
@@ -180,7 +180,7 @@ composite_primary_expression
 single_expression
 	: nucleus_primary_expression
 	| composite_primary_expression
-	| INPUT '(' I_CONSTANT ')' ':' type_specifier // ?????
+	/* | INPUT '(' I_CONSTANT ')' ':' type_specifier // ????? */
 	| INPUT '(' I_CONSTANT ')' // ??????
 	;
 
@@ -295,8 +295,10 @@ rval_expression
 
 assignment_expression
 	: rval_expression
-	/* | builtin_rval_expression */
-	/* | '{' initialyzer_list '}' */
+	| builtin_rval_expression
+	| '{' initialyzer_list '}'
+	| '{' func_block_list '}'
+	| '{' func_block_list '}' '(' initialyzer_list ')'
 	| composite_primary_expression_without_braces assignment_operator assignment_expression
 	/* |  unary_expression ... ... // так работает */
 	;
@@ -304,6 +306,7 @@ assignment_expression
 builtin_rval_expression
 	: glue_rval
 	| repeat_rval
+	| bind_rval
 	;
 
 repeat_rval
@@ -311,6 +314,7 @@ repeat_rval
 
 glue_rval
 	: GLUE '(' glue_initialyzer_list ')'
+	| GLUE '(' glue_initialyzer_list2 ')'
 
 glue_initialyzer_list
 	: expression
@@ -320,6 +324,13 @@ initialyzer_list
 	: expression
 	| initialyzer_list ',' expression
 	| %empty
+
+glue_initialyzer_list2
+	: expression ':' IDENTIFIER
+	| glue_initialyzer_list2 ',' expression ':' IDENTIFIER
+
+bind_rval
+	: BIND '(' expression ',' expression ')'
 
 func_arguments_decllist
 	: IDENTIFIER
@@ -406,7 +417,7 @@ common_type_specifier
 	
 type_specifier
 	: common_type_specifier
-	| VECTOR '<' I_CONSTANT ',' type_specifier '>'
+	| VECTOR '<' type_specifier ',' I_CONSTANT '>'
 	;
 
 /* struct_or_union_specifier
@@ -496,7 +507,7 @@ declarator
 // var, array_elem, ...
 direct_declarator:
 	 /* IDENTIFIER {std::cout << "id" << std::endl;} */
-	 IDENTIFIER ':' type_specifier {std::cout << "here" << std::endl;}
+	 IDENTIFIER ':' type_specifier // {std::cout << "here" << std::endl;}
 
 	/* | '(' declarator ')' // ???? */
 	/* | direct_declarator '[' ']' */
@@ -510,6 +521,7 @@ direct_declarator:
 	/* | direct_declarator '[' assignment_expression ']' */
 	| IDENTIFIER ':' '(' func_arguments_decllist ')' // for paraSL functions
 	| IDENTIFIER ':' '(' func_arguments_decllist ')' ':' type_specifier // for paraSL functions
+	| IDENTIFIER ':' '{' struct_arguments_decllist '}'
 	/* | IDENTIFIER ':' '(' ')' // for paraSL functions */
 	/* | IDENTIFIER ':' '(' ')' ':' type_specifier // for paraSL functions */
 	/* | IDENTIFIER '(' identifier_list ')' // for paraSL functions usage */
@@ -517,6 +529,11 @@ direct_declarator:
 	/* | IDENTIFIER ':' '{' identifier_list '}' */
 	/* | implicit_declarator */
 	;
+
+struct_arguments_decllist
+	: IDENTIFIER ':' type_specifier
+	| IDENTIFIER ':' '(' func_arguments_decllist ')'
+	| struct_arguments_decllist ',' IDENTIFIER ':' type_specifier
 
 implicit_declarator
 	: IDENTIFIER
@@ -659,16 +676,32 @@ compound_statement
 	;
 
 block_item_list
-	: block_item ';'
+	: block_item 
 	| block_item_list block_item
 	;
+
 /* =====================================================================*/
 block_item
-	: composite_primary_expression_without_braces assignment_operator assignment_expression
-	| composite_primary_expression
-	| direct_declarator '=' assignment_expression
+	: composite_primary_expression_without_braces assignment_operator assignment_expression ';'
+	| composite_primary_expression ';'
+	| direct_declarator '=' assignment_expression ';'
+	| direct_declarator ';'
+	| selection_statement ';'
+	| iteration_statement ';'
+	| OUTPUT '(' I_CONSTANT ',' expression ')' ';'
+	| ';'
 	/* : declaration */
 	/* | statement */
+	;
+
+func_block_item
+	: block_item
+	| return_statement
+	;
+
+func_block_list
+	: func_block_item ';'
+	| func_block_list func_block_item ';' // bug
 	;
 
 expression_statement
@@ -677,26 +710,51 @@ expression_statement
 	;
 
 selection_statement
-	: IF '(' expression ')' statement ELSE statement
-	| IF '(' expression ')' statement
+	: IF '(' expression ')' selection_body ELSE selection_body
+	| IF '(' expression ')' selection_body
 	/* | SWITCH '(' expression ')' statement */
 	;
 
+selection_body
+	: '{' func_block_list '}'
+	| '{' '}'
+	| func_block_item ';'
+	;
+
 iteration_statement
-	: WHILE '(' expression ')' statement
+	: WHILE '(' expression ')' iteration_body
 	/* | DO statement WHILE '(' expression ')' ';' */
 	/* | FOR '(' expression_statement expression_statement ')' statement */
 	/* | FOR '(' expression_statement expression_statement expression ')' statement */
 	/* | FOR '(' declaration expression_statement ')' statement */
 	/* | FOR '(' declaration expression_statement expression ')' statement */
+	| FOR '(' for_iterator IN for_range ')' iteration_body
+	;
+
+for_iterator
+	: IDENTIFIER ':' basic_type_specifier
+	| IDENTIFIER
+	;
+
+for_range
+	: I_CONSTANT ':' I_CONSTANT ':' I_CONSTANT
+	| I_CONSTANT ':' I_CONSTANT
+	;
+
+iteration_body
+	: selection_body
 	;
 
 jump_statement
-	: RETURN ';'
+	: RETURN expression ';'
+	/* : RETURN ';' */
 	/* : GOTO IDENTIFIER ';'
 	| CONTINUE ';'
 	| BREAK ';' */
-	| RETURN expression ';'
+	;
+
+return_statement
+	: RETURN expression
 	;
 /* =============================================================== */
 translation_unit
