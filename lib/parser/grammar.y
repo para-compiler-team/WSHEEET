@@ -166,10 +166,25 @@ composite_primary_expression_without_braces
 	: primary_expression
 	/* | builin_primary_expression */
 	/* | composite_primary_expression '[' expression ']' */
-	| composite_primary_expression '[' expression ']'
+	| composite_primary_expression_without_braces '[' expression ']'
 	/* | composite_primary_expression '(' argument_expression_list ')' */
-	| composite_primary_expression '.' IDENTIFIER // paraSL
+	| composite_primary_expression_without_braces '.' IDENTIFIER // paraSL
 	/* | postfix_expression PTR_OP IDENTIFIER */
+	;
+
+composite_primary_expression_postfix_increment
+	: composite_primary_expression_without_braces INC_OP
+	| composite_primary_expression_without_braces DEC_OP
+	;
+
+composite_primary_expression_prefix_increment
+	: composite_primary_expression_postfix_increment
+	/* | INC_OP composite_primary_expression_without_braces
+	| DEC_OP composite_primary_expression_without_braces */
+	;
+
+prefix_postfix_statement
+	: composite_primary_expression_prefix_increment
 	;
 
 composite_primary_expression
@@ -335,6 +350,8 @@ bind_rval
 func_arguments_decllist
 	: IDENTIFIER
 	| IDENTIFIER ':' type_specifier
+	| func_arguments_decllist ',' IDENTIFIER
+	| func_arguments_decllist ',' IDENTIFIER ':' type_specifier
 	| %empty
 
 assignment_operator
@@ -534,6 +551,7 @@ struct_arguments_decllist
 	: IDENTIFIER ':' type_specifier
 	| IDENTIFIER ':' '(' func_arguments_decllist ')'
 	| struct_arguments_decllist ',' IDENTIFIER ':' type_specifier
+	| struct_arguments_decllist ',' IDENTIFIER ':' '(' func_arguments_decllist ')'
 
 implicit_declarator
 	: IDENTIFIER
@@ -683,11 +701,13 @@ block_item_list
 /* =====================================================================*/
 block_item
 	: composite_primary_expression_without_braces assignment_operator assignment_expression ';'
-	| composite_primary_expression ';'
+	| rval_expression ';'
+	/* | cast_expression ';' */
+	/* | prefix_postfix_statement ';' */
 	| direct_declarator '=' assignment_expression ';'
 	| direct_declarator ';'
-	| selection_statement ';'
-	| iteration_statement ';'
+	| selection_statement
+	| iteration_statement
 	| OUTPUT '(' I_CONSTANT ',' expression ')' ';'
 	| ';'
 	/* : declaration */
@@ -700,8 +720,8 @@ func_block_item
 	;
 
 func_block_list
-	: func_block_item ';'
-	| func_block_list func_block_item ';' // bug
+	: func_block_item
+	| func_block_list func_block_item
 	;
 
 expression_statement
@@ -718,7 +738,7 @@ selection_statement
 selection_body
 	: '{' func_block_list '}'
 	| '{' '}'
-	| func_block_item ';'
+	| func_block_item
 	;
 
 iteration_statement
@@ -739,6 +759,7 @@ for_iterator
 for_range
 	: I_CONSTANT ':' I_CONSTANT ':' I_CONSTANT
 	| I_CONSTANT ':' I_CONSTANT
+	| IDENTIFIER
 	;
 
 iteration_body
@@ -754,12 +775,12 @@ jump_statement
 	;
 
 return_statement
-	: RETURN expression
+	: RETURN expression ';'
 	;
 /* =============================================================== */
 translation_unit
-	: external_declaration
-	| translation_unit external_declaration
+	: layer_definition_list
+	| block_item_list
 	;
 
 external_declaration:
@@ -768,9 +789,12 @@ external_declaration:
 	layer_definition
 	;
 
+layer_definition_list	
+	: layer_definition
+	| layer_definition_list layer_definition
+
 layer_definition:
 	LAYER '(' I_CONSTANT ',' STRING_LITERAL ')' compound_statement
-	| compound_statement
 	;
 
 function_definition
