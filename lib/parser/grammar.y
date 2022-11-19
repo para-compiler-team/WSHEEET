@@ -195,8 +195,12 @@ composite_primary_expression
 single_expression
 	: nucleus_primary_expression
 	| composite_primary_expression
-	/* | INPUT '(' I_CONSTANT ')' ':' type_specifier // ????? */
-	| INPUT '(' I_CONSTANT ')' // ??????
+	| input_expression
+	;
+
+input_expression
+	: INPUT '(' I_CONSTANT ')'
+	| INPUT '(' I_CONSTANT ')' ':' type_specifier
 	;
 
 postfix_expression_or_single
@@ -216,7 +220,7 @@ unary_expression
 	: postfix_expression_or_single
 	| INC_OP unary_expression
 	| DEC_OP unary_expression
-	| unary_operator cast_expression
+	| unary_operator premul_expression
 	/* | SIZEOF unary_expression */
 	/* | SIZEOF '(' type_name ')' */
 	/* | ALIGNOF '(' type_name ')' */
@@ -421,7 +425,7 @@ declarator_and_specifiers
 
 basic_type_specifier
 	: INT
-	| INT '(' expression ')'
+	| INT '(' I_CONSTANT ')'
 	| CHAR
 	| FLOAT
 	| DOUBLE
@@ -434,7 +438,7 @@ common_type_specifier
 	
 type_specifier
 	: common_type_specifier
-	| VECTOR '<' type_specifier ',' I_CONSTANT '>'
+	| VECTOR '<' basic_type_specifier ',' I_CONSTANT '>'
 	;
 
 /* struct_or_union_specifier
