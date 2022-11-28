@@ -811,6 +811,149 @@ declaration_list
 	| declaration_list declaration
 	;
 
+/* GLUUUUUE */
+/*
+composite_primary_expression_without_braces_glue
+	: primary_expression
+	| composite_primary_expression_without_braces_glue '[' expression ']'
+	| composite_primary_expression_without_braces_glue '.' IDENTIFIER // paraSL
+	;
+
+composite_primary_expression_postfix_increment_glue
+	: composite_primary_expression_without_braces_glue INC_OP
+	| composite_primary_expression_without_braces_glue DEC_OP
+	;
+
+composite_primary_expression_prefix_increment_glue
+	: composite_primary_expression_postfix_increment_glue
+	// | INC_OP composite_primary_expression_without_braces
+	// | DEC_OP composite_primary_expression_without_braces 
+	;
+
+prefix_postfix_statement_glue
+	: composite_primary_expression_prefix_increment_glue
+	;
+
+composite_primary_expression_glue
+	: composite_primary_expression_without_braces_glue
+	| composite_primary_expression_glue '(' initialyzer_list ')'
+	;
+
+single_expression_glue
+	: nucleus_primary_expression
+	| composite_primary_expression_glue
+	| input_expression_glue
+	;
+
+input_expression_glue
+	: INPUT '(' I_CONSTANT ')' ':' type_specifier
+
+postfix_expression_or_single_glue
+	: single_expression_glue INC_OP
+	| single_expression_glue DEC_OP
+	//| '(' type_name ')' '{' initializer_list '}' 
+	//| '(' type_name ')' '{' initializer_list ',' '}'
+	;
+
+unary_expression_glue
+	: postfix_expression_or_single_glue
+	| INC_OP unary_expression_glue
+	| DEC_OP unary_expression_glue
+	| unary_operator premul_expression_glue
+	;
+
+cast_expression_glue
+	: unary_expression_glue
+	//| '(' type_name ')' cast_expression
+	;
+
+premul_expression_glue
+	: cast_expression_glue
+	// | '(' expression_glue ')'
+	;
+
+multiplicative_expression_glue
+	: premul_expression_glue
+	| multiplicative_expression_glue '*' premul_expression_glue
+	| multiplicative_expression_glue '/' premul_expression_glue
+	| multiplicative_expression_glue '%' premul_expression_glue
+	;
+
+additive_expression_glue
+	: multiplicative_expression_glue
+	| additive_expression_glue '+' multiplicative_expression_glue
+	| additive_expression_glue '-' multiplicative_expression_glue
+	;
+
+shift_expression_glue
+	: additive_expression_glue
+	| shift_expression_glue LEFT_OP additive_expression_glue
+	| shift_expression_glue RIGHT_OP additive_expression_glue
+	;
+
+relational_expression_glue
+	: shift_expression_glue
+	| relational_expression_glue '<' shift_expression_glue
+	| relational_expression_glue '>' shift_expression_glue
+	| relational_expression_glue LE_OP shift_expression_glue
+	| relational_expression_glue GE_OP shift_expression_glue
+	;
+
+equality_expression_glue
+	: relational_expression_glue
+	| equality_expression_glue EQ_OP relational_expression_glue
+	| equality_expression_glue NE_OP relational_expression_glue
+	;
+
+and_expression_glue
+	: equality_expression_glue
+	| and_expression_glue '&' equality_expression_glue
+	;
+
+exclusive_or_expression_glue
+	: and_expression_glue
+	| exclusive_or_expression_glue '^' and_expression_glue
+	;
+
+inclusive_or_expression_glue
+	: exclusive_or_expression_glue
+	| inclusive_or_expression_glue '|' exclusive_or_expression_glue
+	;
+
+logical_and_expression_glue
+	: inclusive_or_expression_glue
+	| logical_and_expression_glue AND_OP inclusive_or_expression_glue
+	;
+
+logical_or_expression_glue
+	: logical_and_expression_glue
+	| logical_or_expression_glue OR_OP logical_and_expression_glue
+	;
+
+conditional_expression_glue
+	: logical_or_expression_glue
+	;
+
+rval_expression_glue
+	: conditional_expression_glue	// with constraints
+	;
+
+assignment_expression_glue
+	: rval_expression_glue
+	// | builtin_rval_expression
+	// | '{' initialyzer_list '}'
+	// | '{' func_block_list '}'
+	// | '{' func_block_list '}' '(' initialyzer_list ')'
+	| composite_primary_expression_without_braces_glue assignment_operator assignment_expression_glue
+	// |  unary_expression ... ... // так работает 
+	;
+
+	
+expression_glue
+	: assignment_expression_glue
+	;
+
+*/
 %%
 
 namespace yy {
