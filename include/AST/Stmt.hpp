@@ -21,15 +21,17 @@
 #include "Expr.hpp"
 #include "TreeNode.hpp"
 
+#include <list>
+
 namespace wsheeet::AST {
 
-class IStmt : public ExprParent {}; // class StmtBase
+class IStmt : public IExprParent {}; // class StmtBase
 
 class ExprStmt : public IStmt,
-                 public TreeNodeWParentAndCh<Scope, Expr> {}; // class ExprStmt
+                 public TreeNodeWParentAndCh<Scope, IExpr> {}; // class ExprStmt
 
-class CompoundStmt : public ITreeNode,
-                     public TreeNodeWParentAndCh<Scope, List<IStmt>> {
+class CompoundStmt : public IStmt,
+                     public TreeNodeWParentAndCh<Scope, std::list<IStmt>> {
 }; // class CompoundStmt
 
 class IfStmt : public IStmt,
@@ -37,15 +39,15 @@ class IfStmt : public IStmt,
 }; // class IfStmt
 
 class ForStmt : public IStmt,
-                public TreeNodeWParentAnd3Ch<Scope, DeclRefExpr, Expr, IStmt> {
+                public TreeNodeWParentAnd3Ch<Scope, DeclRefExpr, IExpr, IStmt> {
 }; // class ForStmt
 
 class WhileStmt : public IStmt,
-                  public TreeNodeWParentAnd2Ch<Scope, Expr, IStmt> {
+                  public TreeNodeWParentAnd2Ch<Scope, IExpr, IStmt> {
 }; // class WhileStmt
 
 class ReturnStmt : public IStmt,
-                   public TreeNodeWParentAndCh<Scope, Expr> {
+                   public TreeNodeWParentAndCh<Scope, IExpr> {
 }; // class ReturnStmt
 
 } // namespace wsheeet::AST

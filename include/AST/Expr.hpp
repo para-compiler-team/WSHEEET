@@ -21,6 +21,7 @@
 #include "Decl.hpp"
 #include "Stmt.hpp"
 #include "SymbolTable.hpp"
+#include "Reference.hpp"
 #include "TreeNode.hpp"
 
 #include <Type.hpp>
@@ -31,25 +32,42 @@
 
 namespace wsheeet::AST {
 
-using Scope = ITreeNode;
+class GlueDecl;
 
-class ExprParent : public ITreeNode {}; // class ExprParent
+class IExprParent : public ITreeNode {}; // class ExprParent
 
-class Expr : public ExprParent {}; // class Expr
+class IExpr : public IExprParent {
+public:
+  virtual IType &type() = 0;
+  virtual std::ostream &print(std::ostream &os) = 0;
+}; // class Expr
 
-template <concepts::SimpleType T> class ConstSimpleValueExpr : public Expr {
+class ExprBase : public IExpr {
+protected:
+  IType *Type;
+
+  ExprBase(IType &Ty) : Type{&Ty} {}
+
+public:
+  IType &type() override { return *Type; }
+}; // class ExprBase
+
+template <concepts::SimpleType T>
+class ConstSimpleValueExpr : public TreeNodeWParent<IExprParent>,
+                             public ExprBase {
 public:
   using TypeTy = T;
   using ValueTy = typename TypeTy::ValueTy;
 
 protected:
-  const TypeTy *Type;
   ValueTy Value;
 
 public:
-  ConstSimpleValueExpr(ValueTy V) : Type{TypeTy::get()}, Value{V} {}
+  ConstSimpleValueExpr(IExprParent *P, ValueTy Val)
+      : TreeNodeWParent{P}, ExprBase{TypeTy::get()}, Value{Val} {}
 
-  ValueTy getValue() const { return Value; }
+  ValueTy &value() { return Value; }
+  ValueTy value() const { return Value; }
 }; // class ConstValueExpr
 
 using IntLiteral = ConstSimpleValueExpr<IntType>;
@@ -57,61 +75,81 @@ using IntLiteral = ConstSimpleValueExpr<IntType>;
 template <std::floating_point F>
 using FPLiteral = ConstSimpleValueExpr<FPType<F>>;
 
-class DeclRefExpr : public Expr,
-                    public TreeNodeWParent<ExprParent> {}; // class DeclRefExpr
+class DeclRefExpr : public TreeNodeWParentAndCh<IExprParent, IExpr>, public ExprBase {
+protected:
+  Identifier Id_;
 
-class CommaExpr : public Expr,
-                  public TreeNodeWParentAnd2Ch<ExprParent, Expr, Expr> {
-}; // class CommaExpr
+public:
+}; // class DeclRefExpr
 
-class UnOpExpr : public Expr,
-                 public TreeNodeWParentAndCh<ExprParent, Expr> {
-}; // class UnOpExpr
+class CommaExpr final : public TreeNodeWParentAnd2Ch<IExprParent, IExpr, IExpr>,
+                  public ExprBase {}; // class CommaExpr
 
-class BinOpExpr : public Expr,
-                  public TreeNodeWParentAnd2Ch<ExprParent, Expr, Expr> {
+enum class UnOpcode {
+  PLUS,
+  MINUS,
+  BNOT,
+  NOT
+};
+
+class UnOpExpr final : public TreeNodeWParentAndCh<IExprParent, IExpr>,
+                 public ExprBase {}; // class UnOpExpr
+
+enum class BinOpcode {
+  ASSIGN,
+  PLUS,
+  MINUS,
+  MUL,
+  DIV,
+  REM,
+  EQ,
+  NEQ,
+  LESS,
+  MORE,
+  LEQ,
+  MEQ,
+  AND,
+  OR,
+  XOR
+};
+
+class BinOpExpr final : public TreeNodeWParentAnd2Ch<IExprParent, IExpr, IExpr>,
+                  public ExprBase {
+  BinOpcode Opcode;
+  bool IsAssign;
 }; // class BinOpExpr
 
 template <typename ArgT>
-class ArgList : public TreeNodeWParentAndManyCh<ExprParent, ArgT> {
+class ArgList : public TreeNodeWParentAndManyCh<IExprParent, ArgT> {
 }; // class ArgList
 
-class CallExpr : public Expr,
-                 public TreeNodeWParentAndCh<ExprParent, ArgList<Expr>> {
-}; // class CallExpr
+class CallExpr final : public TreeNodeWParentAndCh<IExprParent, ArgList<IExpr>>,
+                 public ExprBase {}; // class CallExpr
 
-class ElemAccessExpr : public Expr {}; // class ElemAccessExpr
+class ElemAccessExpr : public ExprBase {}; // class ElemAccessExpr
 
 class NamedElemAccessExpr
-    : public ElemAccessExpr,
-      public TreeNodeWParentAnd2Ch<ExprParent, Expr, DeclRefExpr> {
-}; // class NamedElemAccessExpr
+    : public TreeNodeWParentAnd2Ch<IExprParent, IExpr, DeclRefExpr>,
+      public ElemAccessExpr {}; // class NamedElemAccessExpr
 
 class UnnamedElemAccessExpr
-    : public ElemAccessExpr,
-      public TreeNodeWParentAnd2Ch<ExprParent, Expr, Expr> {
-}; // class UnnamedElemAccessExpr
+    : public TreeNodeWParentAnd2Ch<IExprParent, IExpr, IExpr>,
+      public ElemAccessExpr {}; // class UnnamedElemAccessExpr
 
-class InputExpr : public Expr,
-                  public TreeNodeWParentAndCh<ExprParent, Expr> {
-}; // class InputExpr
+class InputExpr final : public TreeNodeWParentAndCh<IExprParent, IExpr>,
+                  public ExprBase {}; // class InputExpr
 
-class OutputExpr : public Expr,
-                   public TreeNodeWParentAnd2Ch<ExprParent, Expr, Expr> {
-}; // class OutputExpr
+class OutputExpr final : public TreeNodeWParentAnd2Ch<IExprParent, IExpr, IExpr>,
+                   public ExprBase {}; // class OutputExpr
 
-class RepeatExpr : public Expr,
-                   public TreeNodeWParentAnd2Ch<ExprParent, Expr, Expr> {
-}; // class RepeatExpr
+class RepeatExpr final : public TreeNodeWParentAnd2Ch<IExprParent, IExpr, IExpr>,
+                   public ExprBase {}; // class RepeatExpr
 
-class GlueDecl;
-class GlueExpr : public Expr,
-                 public TreeNodeWParentAndCh<ExprParent, ArgList<GlueDecl>> {
-}; // class GlueExpr
+class GlueExpr final : public TreeNodeWParentAndCh<IExprParent, ArgList<GlueDecl>>,
+                 public ExprBase {}; // class GlueExpr
 
-class BindExpr : public Expr,
-                 public TreeNodeWParentAnd2Ch<ExprParent, DeclRefExpr,
-                                              ArgList<NamedElemAccessExpr>> {
-}; // class BindExpr
+class BindExpr final : public TreeNodeWParentAnd2Ch<IExprParent, DeclRefExpr,
+                                              ArgList<NamedElemAccessExpr>>,
+                 public ExprBase {}; // class BindExpr
 
 } // namespace wsheeet::AST

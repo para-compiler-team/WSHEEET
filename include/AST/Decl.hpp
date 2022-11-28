@@ -33,23 +33,40 @@
 namespace wsheeet::AST {
 
 class IStmt;
-class DeclStmt : public IStmt {
+
+class IDeclStmt : public IStmt {
 public:
   [[nodiscard]] virtual std::string_view name() const = 0;
 }; // class IDecl
 
-class GlobalScope : public TreeNodeWCh<IStmt> {
+class Scope : public ITreeNode {}; // class Scope
+
+class GlobalScope : public TreeNodeWManyCh<IStmt> {
 public:
   GlobalScope() = default;
 };
 
-class GlueDecl {
-}; // class GlueDecl
+class LayerDecl final : public IDeclStmt,
+                  public TreeNodeWParentAndCh<GlobalScope, CompoundStmt> {
+  CompoundStmt CStmt_;
+  unsigned LayerNum_;
+  std::string TUName_;
+
+public:
+  LayerDecl(CompoundStmt &&CStmt, unsigned LayerNumber) : CStmt_{CStmt}, LayerNum_{LayerNumber}, TUName_{"unnamed layer"} {}
+  LayerDecl(CompoundStmt &&CStmt, unsigned LayerNumber, std::string_view Name) : CStmt_{CStmt}, LayerNum_{LayerNumber}, TUName_{Name} {}
+}; // class LayerDecl
+
+class GlueTypeDecl final : public IDeclStmt,
+                           public TreeNodeWManyCh<IType> {
+  std::vector<Identifier> Members;
+};
+
+class GlueDecl final : public IDeclStmt {}; // class GlueDecl
 
 template <concepts::Type T>
-class VarDecl
-    : public IDeclStmt,
-      public TreeNodeWParentAnd2Ch<Scope, DeclRefExpr, Expr> {
+class VarDecl : public IDeclStmt,
+                public TreeNodeWParentAnd2Ch<Scope, DeclRefExpr, IExpr> {
 }; // class VarDecl
 
 class FunctionDecl
@@ -58,9 +75,8 @@ class FunctionDecl
 protected:
 public:
   FunctionDecl(Scope &S, DeclRefExpr &I, CompoundStmt &CStmt)
-      : TreeNodeWParentAnd2Ch<Scope, DeclRefExpr, CompoundStmt>(&S, &I, &CStmt) {}
-
-  [[nodiscard]] std::string_view name() const override { return left()->name(); }
+      : TreeNodeWParentAnd2Ch<Scope, DeclRefExpr, CompoundStmt>(&S, &I,
+                                                                &CStmt) {}
 }; // class FnDecl
 
 } // namespace wsheeet::AST

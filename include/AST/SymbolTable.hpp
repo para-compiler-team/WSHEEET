@@ -18,10 +18,31 @@
 
 #pragma once
 
+#include "Type.hpp"
+#include <string>
+#include <string_view>
+#include <unordered_map>
+
 namespace wsheeet {
 
-class Identifier {}; // class Identifier
-class IdentifierInfo {}; // class IdentifierInfo
-class SymbolTable {}; // class SymbolTable
+class Identifier {
+  std::string Id_;
+
+public:
+  Identifier(std::string_view Name) : Id_(Name) {}
+}; // class Identifier
+
+class IdentifierInfo {
+  Scope *Scope;
+  IType *Ty_;
+  IdentifierInfo *ParentId_;
+public:
+  IdentifierInfo(Scope &S, IType &Ty) : Scope_{&S}, Ty_{&Ty}, ParentId_{nullptr} {}
+  IdentifierInfo(Scope &S, IType &Ty, IdentifierInfo &ParentId) : Scope_{&S}, Ty_{&Ty}, ParentId_{&ParentId} {}
+}; // class IdentifierInfo
+
+class SymbolTable {
+  std::unordered_map<Identifier, std::vector<IdentifierInfo>> Table;
+}; // class SymbolTable
 
 } // namespace wsheeet

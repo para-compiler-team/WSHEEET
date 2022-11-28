@@ -27,7 +27,9 @@
 
 namespace wsheeet::AST {
 
-class ITreeNode {
+class INode {}; // class INode
+
+class ITreeNode : public INode {
 public:
 }; // class ITreeNode
 
@@ -568,5 +570,48 @@ protected:
 
 public:
 }; // class TreeNodeWParentAndManyCh
+
+template <typename T> class ListNode final : public INode {
+  std::unique_ptr<ListNode> Prev_;
+  std::unique_ptr<ListNode> Next_;
+  T Data_;
+
+  ListNode(ListNode *Prev, ListNode *Next)
+      : Prev_{Prev}, Next_{Next}, Data_{} {}
+
+  template <typename... ArgTypes>
+  ListNode(ListNode *Prev, ListNode *Next, ArgTypes &&...Args)
+      : Prev_{Prev}, Next_{Next}, Data_{std::forward(Args)...} {}
+
+public:
+  ~ListNode() noexcept {
+    if (Prev_ != nullptr)
+      Prev_->Next_ = nullptr;
+  }
+
+  static auto getNewList() {
+    return std::make_unique(ListNode(nullptr, nullptr));
+  }
+
+  template <typename... ArgTypes> static auto getNewList(ArgTypes &&...Args) {
+    return std::make_unique<ListNode>(nullptr, nullptr, std::forward(Args)...);
+  }
+
+  [[nodiscard]] ListNode *prev() const noexcept { return Prev_; }
+  [[nodiscard]] ListNode *next() const noexcept { return Next_; }
+
+  ListNode &linkPrev(ListNode *ToLink) noexcept {
+    Prev_.reset(ToLink);
+    return *this;
+  }
+
+  ListNode &linkNext(ListNode *ToLink) noexcept {
+    Next_.reset(ToLink);
+    return *this;
+  }
+
+  [[nodiscard]] T &operator*() const noexcept { return Data_; }
+  [[nodiscard]] T *operator->() const noexcept { return &Data_; }
+}; // class List
 
 } // namespace wsheeet::AST
