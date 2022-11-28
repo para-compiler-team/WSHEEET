@@ -23,6 +23,7 @@ target_sources(${PROJECT_NAME} PRIVATE
   main.cc
 )
 
+find_package(Boost REQUIRED)
 add_subdirectory(lib)
 
 target_link_libraries(${PROJECT_NAME} AST)
