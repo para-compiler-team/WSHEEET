@@ -64,7 +64,7 @@ parser::token_type yylex(parser::semantic_type* yylval,
 /* %token	STRUCT UNION ENUM ELLIPSIS */
 
 /* %token	CASE DEFAULT SWITCH  */
-%token IF ELSE 
+%token IF ELSE THEN
 %token WHILE
 /* %token DO */
 %token FOR 
@@ -97,6 +97,9 @@ parser::token_type yylex(parser::semantic_type* yylval,
 %right AND_ASSIGN
 %right XOR_ASSIGN
 %right OR_ASSIGN
+
+%precedence THEN
+%precedence ELSE
 
 %%
 // node
@@ -735,7 +738,7 @@ expression_statement
 
 selection_statement
 	: IF '(' expression ')' selection_body ELSE selection_body
-	| IF '(' expression ')' selection_body
+	| IF '(' expression ')' selection_body %prec THEN
 	/* | SWITCH '(' expression ')' statement */
 	;
 
