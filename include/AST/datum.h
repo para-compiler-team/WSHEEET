@@ -6,7 +6,7 @@
 #include <iostream>
 #include <map>
 
-namespace visitor {
+namespace ast {
 namespace detail {
 
 struct Blank {
@@ -26,4 +26,4 @@ using DatumType = std::pair<DatumID, Datum>;
 using Datums = std::map<DatumID, Datum>;
 
 } // namespace detail
-} // namespace visitor
+} // namespace ast
