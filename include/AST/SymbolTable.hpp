@@ -18,7 +18,9 @@
 
 #pragma once
 
+#include "Decl.hpp"
 #include "Type.hpp"
+
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -33,9 +35,7 @@ public:
 }; // class Identifier
 
 class IdentifierInfo {
-  Scope *Scope;
-  IType *Ty_;
-  IdentifierInfo *ParentId_;
+  IDecl *Decl_;
 public:
   IdentifierInfo(Scope &S, IType &Ty) : Scope_{&S}, Ty_{&Ty}, ParentId_{nullptr} {}
   IdentifierInfo(Scope &S, IType &Ty, IdentifierInfo &ParentId) : Scope_{&S}, Ty_{&Ty}, ParentId_{&ParentId} {}

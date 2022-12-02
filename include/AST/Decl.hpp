@@ -33,45 +33,53 @@
 namespace wsheeet::AST {
 
 class IStmt;
+class LayerDecl;
+
+class Scope : public ITreeNode {}; // class Scope
 
 class IDeclStmt : public IStmt {
 public:
   [[nodiscard]] virtual std::string_view name() const = 0;
 }; // class IDecl
 
-class Scope : public ITreeNode {}; // class Scope
-
-class GlobalScope : public TreeNodeWManyCh<IStmt> {
+class GlobalScope : public TreeNodeWManyCh<LayerDecl> {
 public:
   GlobalScope() = default;
 };
 
-class LayerDecl final : public IDeclStmt,
-                  public TreeNodeWParentAndCh<GlobalScope, CompoundStmt> {
-  CompoundStmt CStmt_;
+class LayerDecl final : public TreeNodeWParentAndCh<GlobalScope, CompoundStmt>,
+                        public IDeclStmt {
   unsigned LayerNum_;
   std::string TUName_;
 
 public:
-  LayerDecl(CompoundStmt &&CStmt, unsigned LayerNumber) : CStmt_{CStmt}, LayerNum_{LayerNumber}, TUName_{"unnamed layer"} {}
-  LayerDecl(CompoundStmt &&CStmt, unsigned LayerNumber, std::string_view Name) : CStmt_{CStmt}, LayerNum_{LayerNumber}, TUName_{Name} {}
+  LayerDecl(GlobalScope &GScope, CompoundStmt &CStmt, unsigned LayerNumber)
+      : TreeNodeWParentAndCh{&GScope, &CStmt}, LayerNum_{LayerNumber},
+        TUName_{"unnamed layer"} {}
+  LayerDecl(GlobalScope &GScope, CompoundStmt &CStmt, unsigned LayerNumber,
+            std::string_view Name)
+      : TreeNodeWParentAndCh{&GScope, &CStmt}, LayerNum_{LayerNumber},
+        TUName_{Name} {}
 }; // class LayerDecl
 
-class GlueTypeDecl final : public IDeclStmt,
-                           public TreeNodeWManyCh<IType> {
+class GlueTypeDecl final : public TreeNodeWManyCh<IType>, public IDeclStmt {
   std::vector<Identifier> Members;
 };
 
-class GlueDecl final : public IDeclStmt {}; // class GlueDecl
+template <concepts::Expr InitExpr>
+class ValueDecl : public TreeNodeWParentAnd2Ch<Scope, DeclRefExpr, InitExpr>,
+                  public IDeclStmt {}; // class ValueDecl
 
 template <concepts::Type T>
-class VarDecl : public IDeclStmt,
-                public TreeNodeWParentAnd2Ch<Scope, DeclRefExpr, IExpr> {
-}; // class VarDecl
+class VarDecl : public TreeNodeWParentAnd2Ch<Scope, DeclRefExpr, IExpr>,
+                public IDeclStmt {}; // class VarDecl
+
+class FunctionTypeDecl final : public TreeNodeW2Ch<IType, ArgList<IType>>,
+                               public IDeclStmt {}; // class FunctionTypeDecl
 
 class FunctionDecl
-    : public IDeclStmt,
-      public TreeNodeWParentAnd2Ch<Scope, DeclRefExpr, CompoundStmt> {
+    : public TreeNodeWParentAnd2Ch<Scope, DeclRefExpr, CompoundStmt>,
+      public IDeclStmt {
 protected:
 public:
   FunctionDecl(Scope &S, DeclRefExpr &I, CompoundStmt &CStmt)

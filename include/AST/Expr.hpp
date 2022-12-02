@@ -21,7 +21,6 @@
 #include "Decl.hpp"
 #include "Stmt.hpp"
 #include "SymbolTable.hpp"
-#include "Reference.hpp"
 #include "TreeNode.hpp"
 
 #include <Type.hpp>
@@ -41,6 +40,11 @@ public:
   virtual IType &type() = 0;
   virtual std::ostream &print(std::ostream &os) = 0;
 }; // class Expr
+
+namespace concepts {
+template <typename T>
+concept Expr = std::derived_from<T, IExpr>;
+} // namespace concepts
 
 class ExprBase : public IExpr {
 protected:
@@ -66,7 +70,6 @@ public:
   ConstSimpleValueExpr(IExprParent *P, ValueTy Val)
       : TreeNodeWParent{P}, ExprBase{TypeTy::get()}, Value{Val} {}
 
-  ValueTy &value() { return Value; }
   ValueTy value() const { return Value; }
 }; // class ConstValueExpr
 
@@ -96,35 +99,49 @@ class UnOpExpr final : public TreeNodeWParentAndCh<IExprParent, IExpr>,
                  public ExprBase {}; // class UnOpExpr
 
 enum class BinOpcode {
-  ASSIGN,
   PLUS,
   MINUS,
   MUL,
   DIV,
   REM,
+  SHL,
+  SHR,
+  AND,
+  OR,
+  XOR,
+  LAND,
+  LOR,
   EQ,
   NEQ,
   LESS,
   MORE,
   LEQ,
   MEQ,
-  AND,
-  OR,
-  XOR
+  COMMA,
+  ASSIGN,
+  PLUS_ASSIGN,
+  MINUS_ASSIGN,
+  MUL_ASSIGN,
+  DIV_ASSIGN,
+  REM_ASSIGN,
+  SHL_ASSIGN,
+  SHR_ASSIGN,
+  AND_ASSIGN,
+  OR_ASSIGN,
+  XOR_ASSIGN
 };
 
 class BinOpExpr final : public TreeNodeWParentAnd2Ch<IExprParent, IExpr, IExpr>,
-                  public ExprBase {
+                        public ExprBase {
   BinOpcode Opcode;
-  bool IsAssign;
 }; // class BinOpExpr
 
 template <typename ArgT>
 class ArgList : public TreeNodeWParentAndManyCh<IExprParent, ArgT> {
 }; // class ArgList
 
-class CallExpr final : public TreeNodeWParentAndCh<IExprParent, ArgList<IExpr>>,
-                 public ExprBase {}; // class CallExpr
+class CallExpr final : public TreeNodeWParentAnd2Ch<IExprParent, IExpr, ArgList<IExpr>>,
+                       public ExprBase {}; // class CallExpr
 
 class ElemAccessExpr : public ExprBase {}; // class ElemAccessExpr
 
