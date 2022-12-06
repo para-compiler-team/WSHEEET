@@ -9,8 +9,7 @@
 
 namespace ast {
 
-// TODO make it singleton.
-struct TypeBuilder {
+class TypeBuilder final {
 
   template <typename T>
   using TypesList = std::unordered_map<size_t, std::unique_ptr<T>>;
@@ -20,8 +19,31 @@ struct TypeBuilder {
              TypesList<DoubleTy>, TypesList<ArrayTy>, TypesList<StructTy>>
       TypesContaner;
 
+  size_t getHash(CIsType auto *x) { return x->getHash(); }
+  size_t getHash(std::integral auto x) { return static_cast<size_t>(x); }
+  size_t getHash(auto x) {
+    std::cerr << "Faild to get hash.\n";
+    return static_cast<size_t>(x);
+  }
+
+  template <typename T, typename... Tys>
+  size_t parseArgs(T &&First, Tys &&...Others) {
+    size_t Hash = getHash(First);
+    Hash ^= parseArgs(std::forward<Tys>(Others)...) << 1u;
+    return Hash;
+  }
+  template <typename T> size_t parseArgs(T &&One) { return getHash(One); }
+  size_t parseArgs() { return {}; }
+
+public:
+  TypeBuilder() = default;
+  TypeBuilder(TypeBuilder const &) = delete;
+  TypeBuilder &operator=(TypeBuilder const &) = delete;
+  TypeBuilder &operator=(TypeBuilder const &&) = delete;
+  ~TypeBuilder() = default;
+
   // TODO make concepts
-  template <typename T, typename... Args> T *get(Args &&...args) {
+  template <CIsType T, typename... Args> T *get(Args &&...args) {
     auto &&List = std::get<TypesList<T>>(TypesContaner);
 
     size_t ArgsHash = parseArgs(args...);
@@ -36,22 +58,6 @@ struct TypeBuilder {
     }
 
     return FindIt->second.get();
-  }
-
-  // TODO concept.
-  size_t getHash(auto *x) { return x->getHash(); }
-
-  size_t getHash(std::integral auto x) { return static_cast<size_t>(x); }
-
-  template <typename T> size_t parseArgs(T &&One) { return getHash(One); }
-
-  size_t parseArgs() { return {}; }
-
-  template <typename T, typename... Tys>
-  size_t parseArgs(T &&First, Tys &&...Others) {
-    size_t Hash = getHash(First);
-    Hash ^= parseArgs(std::forward<Tys>(Others)...) << 1u;
-    return Hash;
   }
 };
 

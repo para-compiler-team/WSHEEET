@@ -30,5 +30,10 @@ void ast::call() {
 
   // Is it range, or init list?
   auto S = TB.get<ast::StructTy>(VA, array, CI, Int16, Int);
+  auto S_2 = TB.get<ast::StructTy>(VA, array, CI, Int16, Int);
+  auto S2 = TB.get<ast::StructTy>(VA, array, CI, Int16);
+  assert(S == S_2);
+  assert(S != S2);
+
   std::cout << *S << '\n';
 }

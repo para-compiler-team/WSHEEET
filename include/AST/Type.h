@@ -54,10 +54,11 @@ public:
   virtual ~TypeBase(){};
 };
 
-// out operator to print all Types.
 template <typename T>
-  requires std::is_base_of_v<TypeBase, T>
-inline std::ostream &operator<<(std::ostream &os, T const &Ty) {
+concept CIsType = std::is_base_of_v<TypeBase, T>;
+
+// out operator to print all Types.
+inline std::ostream &operator<<(std::ostream &os, CIsType auto const &Ty) {
   Ty.print(os);
   return os;
 }
