@@ -16,8 +16,8 @@ struct TypeBuilder {
   using TypesList = std::unordered_map<size_t, std::unique_ptr<T>>;
 
   // TODO make smth like: TypeBuilder.registerTypes<MyInt, MyFloat...>
-  std::tuple<TypesList<Int>, TypesList<ConstInt>, TypesList<Float>,
-             TypesList<Double>, TypesList<Array>, TypesList<Struct>>
+  std::tuple<TypesList<IntTy>, TypesList<ConstIntTy>, TypesList<FloatTy>,
+             TypesList<DoubleTy>, TypesList<ArrayTy>, TypesList<StructTy>>
       TypesContaner;
 
   // TODO make concepts
@@ -30,7 +30,8 @@ struct TypeBuilder {
     if (FindIt == List.end()) {
       bool IsInserted = false;
       std::tie(FindIt, IsInserted) = List.emplace(
-          ArgsHash, std::make_unique<T>(std::forward<Args>(args)...));
+          // Here I need new T for incapsulation.
+          ArgsHash, new T{std::forward<Args>(args)...});
       assert(IsInserted && "If Type not found, it has to be inserted once.");
     }
 
