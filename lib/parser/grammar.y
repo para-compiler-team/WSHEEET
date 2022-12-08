@@ -361,8 +361,8 @@ initialyzer_list
 	| %empty
 
 glue_initialyzer_list2
-	: expression ':' IDENTIFIER
-	| glue_initialyzer_list2 ',' expression ':' IDENTIFIER
+	: glue_expression ':' IDENTIFIER
+	| glue_initialyzer_list2 ',' glue_expression ':' IDENTIFIER
 
 bind_rval
 	: BIND '(' expression ',' expression ')'
@@ -836,13 +836,18 @@ declaration_list
 	;
 
 /* GLUUUUUE */
-/*
+
 composite_primary_expression_without_braces_glue
 	: primary_expression
 	| composite_primary_expression_without_braces_glue '[' expression ']'
 	| composite_primary_expression_without_braces_glue '.' IDENTIFIER // paraSL
 	;
 
+glue_expression	
+	: INPUT '(' I_CONSTANT ')' ':' type_specifier
+	; 
+
+/*
 composite_primary_expression_postfix_increment_glue
 	: composite_primary_expression_without_braces_glue INC_OP
 	| composite_primary_expression_without_braces_glue DEC_OP
