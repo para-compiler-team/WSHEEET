@@ -57,6 +57,25 @@ parser::token_type yylex(parser::semantic_type* yylval,
 %token	SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN
 %token	XOR_ASSIGN OR_ASSIGN
 %token	TYPEDEF_NAME
+
+%token COLON_INT
+%token COLON_CHAR
+%token COLON_FLOAT
+%token COLON_DOUBLE
+/* %token COLON_INT_CURVED_BRACKET_RIGHT */
+/* %token COLON_CHAR_CURVED_BRACKET_RIGHT */
+/* %token COLON_FLOAT_CURVED_BRACKET_RIGHT */
+/* %token COLON_DOUBLE_CURVED_BRACKET_RIGHT */
+/* %token COLON_INT_COMMA */
+/* %token COLON_CHAR_COMMA */
+/* %token COLON_FLOAT_COMMA */
+/* %token COLON_DOUBLE_COMMA */
+%token COLON_VECTOR_LESS
+
+/* %token COLON_VARNAME_CURVED_BRACKET */
+/* %token COLON_VARNAME_COMMA */
+%token COLON_VARNAME
+
 /* %token ENUMERATION_CONSTANT */
 
 /* %token	TYPEDEF EXTERN STATIC AUTO REGISTER INLINE */
@@ -92,10 +111,10 @@ parser::token_type yylex(parser::semantic_type* yylval,
 /* %precedence IDENTIFIER */
 /* %precedence ':' */
 /* %precedence '(' */
-%left IDENTIFIER
+/* %left IDENTIFIER */
 
 // for fixing conflicts in direct_declarator
-%left ':'
+/* %left ':' */
 
 %right '='
 %right MUL_ASSIGN
@@ -111,6 +130,15 @@ parser::token_type yylex(parser::semantic_type* yylval,
 
 %precedence THEN
 %precedence ELSE
+%precedence ')'
+%precedence ':'
+
+%precedence INT
+%precedence CHAR
+%precedence FLOAT
+%precedence DOUBLE
+%precedence VECTOR
+%precedence IDENTIFIER
 
 %token DEBUG_LEXEM
 
@@ -138,16 +166,17 @@ primary_expression
 	/* | generic_selection */
 	;
 
+/*
 builin_primary_expression
 	: INPUT '(' I_CONSTANT INLINE_RANGE I_CONSTANT ')'
 	| INPUT '(' I_CONSTANT INLINE_RANGE I_CONSTANT ')' ':' type_specifier
 	| INPUT '(' I_CONSTANT ')' ':' type_specifier
 	| INPUT '(' I_CONSTANT ')'
 	| REPEAT '(' primary_expression ',' expression ')'
-	/* | GLUE '(' argument_expression_list ')' */
-	/* | GLUE '(' glue_expression_list2 ')' */
+	// | GLUE '(' argument_expression_list ')' 
+	// | GLUE '(' glue_expression_list2 ')' 
 	;
-
+*/
 constant
 	: I_CONSTANT	{std::cout << $$.a << "gg " << $$.b  << std::endl;}	// includes character_constant
 	| F_CONSTANT
@@ -216,7 +245,7 @@ single_expression
 
 input_expression
 	: INPUT '(' I_CONSTANT ')'
-	| INPUT '(' I_CONSTANT ')' ':' type_specifier
+	| INPUT '(' I_CONSTANT ')' type_specifier
 	;
 
 postfix_expression_or_single
@@ -349,7 +378,9 @@ repeat_rval
 
 glue_rval
 	: GLUE '(' glue_initialyzer_list ')'
-	| GLUE '(' glue_initialyzer_list2 ')'
+	| GLUE '(' glue_initialyzer_list3 ')'
+	/* | GLUE '(' expression COLON_VARNAME_CURVED_BRACKET */
+	/* | GLUE '(' glue_initialyzer_list2 expression COLON_VARNAME_CURVED_BRACKET */
 
 glue_initialyzer_list
 	: expression
@@ -360,18 +391,23 @@ initialyzer_list
 	| initialyzer_list ',' expression
 	| %empty
 
+/*
 glue_initialyzer_list2
-	: glue_expression ':' IDENTIFIER
-	| glue_initialyzer_list2 ',' glue_expression ':' IDENTIFIER
+	: expression COLON_VARNAME_COMMA
+	| glue_initialyzer_list2 expression COLON_VARNAME_COMMA
+*/
+glue_initialyzer_list3
+	: expression COLON_VARNAME
+	| glue_initialyzer_list3 ',' expression COLON_VARNAME
 
 bind_rval
 	: BIND '(' expression ',' expression ')'
 
 func_arguments_decllist
 	: IDENTIFIER
-	| IDENTIFIER ':' type_specifier
+	| IDENTIFIER type_specifier
 	| func_arguments_decllist ',' IDENTIFIER
-	| func_arguments_decllist ',' IDENTIFIER ':' type_specifier
+	| func_arguments_decllist ',' IDENTIFIER type_specifier
 	| %empty
 
 assignment_operator
@@ -447,14 +483,22 @@ basic_type_specifier
 	| DOUBLE
 	;
 
+colon_basic_type_specifier
+	: COLON_INT
+	| COLON_INT '(' I_CONSTANT ')'
+	| COLON_CHAR
+	| COLON_FLOAT
+	| COLON_DOUBLE
+	;
+
 common_type_specifier
-	: basic_type_specifier
-	| basic_type_specifier '[' expression ']'
+	: colon_basic_type_specifier
+	| colon_basic_type_specifier '[' expression ']'
 	;
 	
 type_specifier
 	: common_type_specifier
-	| VECTOR '<' basic_type_specifier ',' I_CONSTANT '>'
+	| COLON_VECTOR_LESS basic_type_specifier ',' I_CONSTANT '>'
 	;
 
 /* struct_or_union_specifier
@@ -544,7 +588,7 @@ declarator
 // var, array_elem, ...
 direct_declarator:
 	 /* IDENTIFIER {std::cout << "id" << std::endl;} */
-	 IDENTIFIER ':' type_specifier // {std::cout << "here" << std::endl;}
+	 IDENTIFIER type_specifier // {std::cout << "here" << std::endl;}
 
 	/* | '(' declarator ')' // ???? */
 	/* | direct_declarator '[' ']' */
@@ -557,7 +601,7 @@ direct_declarator:
 	/* | direct_declarator '[' type_qualifier_list ']' */
 	/* | direct_declarator '[' assignment_expression ']' */
 	| IDENTIFIER ':' '(' func_arguments_decllist ')' // for paraSL functions
-	| IDENTIFIER ':' '(' func_arguments_decllist ')' ':' type_specifier // for paraSL functions
+	| IDENTIFIER ':' '(' func_arguments_decllist ')' type_specifier // for paraSL functions
 	| IDENTIFIER ':' '{' struct_arguments_decllist '}'
 	/* | IDENTIFIER ':' '(' ')' // for paraSL functions */
 	/* | IDENTIFIER ':' '(' ')' ':' type_specifier // for paraSL functions */
@@ -568,9 +612,9 @@ direct_declarator:
 	;
 
 struct_arguments_decllist
-	: IDENTIFIER ':' type_specifier
+	: IDENTIFIER type_specifier
 	| IDENTIFIER ':' '(' func_arguments_decllist ')'
-	| struct_arguments_decllist ',' IDENTIFIER ':' type_specifier
+	| struct_arguments_decllist ',' IDENTIFIER type_specifier
 	| struct_arguments_decllist ',' IDENTIFIER ':' '(' func_arguments_decllist ')'
 
 implicit_declarator
@@ -585,7 +629,7 @@ function_arg_decl_list
 	;
 
 function_arg_decl
-	: IDENTIFIER ':' type_specifier
+	: IDENTIFIER type_specifier
 	| IDENTIFIER
 	;
 
@@ -780,15 +824,66 @@ iteration_statement
 	;
 
 for_iterator
-	: IDENTIFIER ':' basic_type_specifier
+	: IDENTIFIER colon_basic_type_specifier /* may be errors */
 	| IDENTIFIER
 	;
 
 for_range
-	: I_CONSTANT ':' I_CONSTANT ':' I_CONSTANT
-	| I_CONSTANT ':' I_CONSTANT
-	| IDENTIFIER
+	: expression ':' conditional_expression ':' expression
+	| expression for_cond_expression for_expression
+	| expression ':' conditional_expression
+	| expression for_cond_expression
+	| expression
+	/* : I_CONSTANT ':' I_CONSTANT ':' I_CONSTANT */
+	/* | I_CONSTANT ':' I_CONSTANT */
+	/* | IDENTIFIER */
+	/* | IDENTIFIER COLON_VARNAME_CURVED_BRACKET */
+	/* | IDENTIFIER ':' IDENTIFIER COLON_VARNAME_CURVED_BRACKET */
 	;
+
+for_expression
+	: for_cond_expression
+	| COLON_VARNAME for_assign_symbol expression
+	;
+
+for_cond_expression
+	: COLON_VARNAME
+	| COLON_VARNAME for_conditional_symbol expression
+	| COLON_VECTOR_LESS expression
+
+for_assign_symbol
+	: ADD_ASSIGN
+	| SUB_ASSIGN
+	| XOR_ASSIGN
+	| AND_ASSIGN
+	| OR_ASSIGN
+	| MUL_ASSIGN
+	| DIV_ASSIGN
+	| MOD_ASSIGN
+	| LEFT_ASSIGN
+	| RIGHT_ASSIGN
+	;
+
+for_binary_symbol
+	: '+'
+	| '-'
+	| '*'
+	| '%'
+	| '/'
+	| LEFT_OP
+	| RIGHT_OP
+	| '&'
+	| '^'
+
+for_conditional_symbol
+	: NE_OP
+	| EQ_OP
+	| LE_OP
+	| GE_OP
+	| '<'
+	| '>'
+	| AND_OP
+	| OR_OP
 
 iteration_body
 	: selection_body
@@ -837,15 +932,19 @@ declaration_list
 
 /* GLUUUUUE */
 
+glue_expression	
+	: glue_expr
+	; 
+
 composite_primary_expression_without_braces_glue
 	: primary_expression
-	| composite_primary_expression_without_braces_glue '[' expression ']'
+	/* | composite_primary_expression_without_braces_glue '[' expression ']' */
 	| composite_primary_expression_without_braces_glue '.' IDENTIFIER // paraSL
 	;
 
-glue_expression	
-	: INPUT '(' I_CONSTANT ')' ':' type_specifier
-	; 
+glue_expr
+	: composite_primary_expression_without_braces_glue
+	;
 
 /*
 composite_primary_expression_postfix_increment_glue

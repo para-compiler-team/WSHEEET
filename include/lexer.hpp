@@ -17,7 +17,7 @@ class Lexer : public yyFlexLexer {
 
     // yy::parser::token_type process_plus() {
 
-    void lxWrap(const char *yytext) { std::cout << yytext; }
+    void lxWrap(const char *yytext) { std::cout << yytext << "\n"; }
 
     token_type check_type() { return token_type::IDENTIFIER; }
 

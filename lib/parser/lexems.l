@@ -6,6 +6,19 @@
 #include "lexer.hpp"
 #include "grammar.tab.hh"
 using token_type = yy::parser::token_type;
+/*
+ON_CHAR_CURVED_BRACKET_RIGHT}              {lxWrap(yytext); return token_type::COLON_CHAR_CURVED_BRACKET_RIGHTWARNING}
+{COLON_INT_CURVED_BRACKET_RIGHT}              {lxWrap(yytext); return token_type::COLON_INT_CURVED_BRACKET_RIGHT; RNING}
+{COLON_FLOAT_CURVED_BRACKET_RIGHT}              {lxWrap(yytext); return token_type::COLON_FLOAT_CURVED_BRACKET_RIGHT; WARNIN}
+{COLON_DOUBLE_CURVED_BRACKET_RIGHT}              {lxWrap(yytext); return token_type::COLON_DOUBLE_CURVED_BRACKET_RIGHT; WARNING}
+{COLON_CHAR_COMMA}              {lxWrap(yytext); return token_type::COLON_CHAR_COMMA; //WARNING }
+{COLON_INT_COMMA}              {lxWrap(yytext); return token_type::COLON_INT_COMMA; WARNING}
+{COLON_FLOAT_COMMA}              {lxWrap(yytext); return token_type::COLON_FLOAT_COMMA; WARNING}
+{COLON_DOUBLE_COMMA}              {lxWrap(yytext); return token_type::COLON_DOUBLE_COMMA; WARNING}
+
+{COLON_VARNAME_COMMA}              {lxWrap(yytext); return token_type::COLON_VARNAME_COMMA; WARNING}
+{COLON_VARNAME_CURVED_BRACKET}              {lxWrap(yytext); return token_type::COLON_VARNAME_CURVED_BRACKET; WARNING}
+*/
 
 %}
 
@@ -32,6 +45,22 @@ SP  (u8|u|U|L)
 ES  (\\(['"\?\\abfnrtv]|[0-7]{1,3}|x[a-fA-F0-9]+))
 WSnl  [ \t\v\n\f]
 WS    [ \t\v\f]
+COLON_INT   \:[ \t]*int
+COLON_CHAR   \:[ \t]*char
+COLON_FLOAT   \:[ \t]*float
+COLON_DOUBLE   \:[ \t]*double
+COLON_VECTOR_LESS    \:[ \t]*vector[ \t]*\<
+COLON_INT_CURVED_BRACKET_RIGHT      \:[ \t]*int[ \t]*\)
+COLON_CHAR_CURVED_BRACKET_RIGHT     \:[ \t]*char[ \t]*\)
+COLON_FLOAT_CURVED_BRACKET_RIGHT    \:[ \t]*float[ \t]*\)
+COLON_DOUBLE_CURVED_BRACKET_RIGHT   \:[ \t]*double[ \t]*\)
+COLON_INT_COMMA                     \:[ \t]*int[ \t]*,
+COLON_CHAR_COMMA                    \:[ \t]*char[ \t]*,
+COLON_FLOAT_COMMA                   \:[ \t]*float[ \t]*,
+COLON_DOUBLE_COMMA                  \:[ \t]*double[ \t]*,
+COLON_VARNAME_CURVED_BRACKET        \:[ \t]*{L}{A}*[ \t]*\)
+COLON_VARNAME_COMMA                 \:[ \t]*{L}{A}*[ \t]*,
+COLON_VARNAME                       \:[ \t]*{L}{A}*
 %%
 
 "HAHA"                      { lxWrap(yytext); return process_error(); }
@@ -56,7 +85,15 @@ WS    [ \t\v\f]
 "glue"                         { lxWrap(yytext); return token_type::GLUE; }
 "bind"                         { lxWrap(yytext); return token_type::BIND; }
 "vector"                       { lxWrap(yytext); return token_type::VECTOR;}
-"in"                       { lxWrap(yytext); return token_type::IN;}
+"in"                       { lxWrap(yytext); std::cout << "in!\n"; return token_type::IN;}
+
+{COLON_CHAR}              {lxWrap(yytext); return token_type::COLON_CHAR; /*WARNING*/}
+{COLON_INT}              {lxWrap(yytext); return token_type::COLON_INT; /*WARNING*/}
+{COLON_FLOAT}              {lxWrap(yytext); return token_type::COLON_FLOAT; /*WARNING*/}
+{COLON_DOUBLE}              {lxWrap(yytext); return token_type::COLON_DOUBLE; /*WARNING*/}
+{COLON_VECTOR_LESS}              {lxWrap(yytext); return token_type::COLON_VECTOR_LESS; /*WARNING*/}
+{COLON_VARNAME}              {lxWrap(yytext); return token_type::COLON_VARNAME; /*WARNING*/}
+
 
 {L}{A}*					{ lxWrap(yytext); return check_type(); }
 
