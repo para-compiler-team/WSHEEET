@@ -13,8 +13,9 @@
 
 %skeleton "lalr1.cc"
 %defines
-%define api.value.type variant
-%param {yy::LexerDriver* driver}
+/* %define api.value.type variant */
+%define api.value.type { myType }
+%param { yy::LexerDriver* driver }
 
 %code requires
 {
@@ -24,6 +25,16 @@
 
 // forward decl of argument to parser
 namespace yy { class LexerDriver; }
+
+struct myType {
+	int a;
+	int b;
+	void hello() {
+		std::cout << "HELLLLLO" << std::endl;
+		/* std::cerr << yylval->as<std::string>(); */
+		}
+};
+
 }
 
 %code
@@ -101,6 +112,8 @@ parser::token_type yylex(parser::semantic_type* yylval,
 %precedence THEN
 %precedence ELSE
 
+%token DEBUG_LEXEM
+
 %%
 // node
 primary_assignable_expression
@@ -136,7 +149,7 @@ builin_primary_expression
 	;
 
 constant
-	: I_CONSTANT		// includes character_constant
+	: I_CONSTANT	{std::cout << $$.a << "gg " << $$.b  << std::endl;}	// includes character_constant
 	| F_CONSTANT
 	/* | ENUMERATION_CONSTANT	// after it has been defined as such */
 	;
@@ -376,7 +389,7 @@ assignment_operator
 	;
 
 expression
-	: assignment_expression
+	: assignment_expression { std::cout << "heeerre" << std::endl;  $$.b = 4; }
 	/* | expression ',' assignment_expression */
 	;
 
@@ -701,7 +714,7 @@ compound_statement
 	;
 
 block_item_list
-	: block_item 
+	: block_item
 	| block_item_list block_item
 	;
 
@@ -709,17 +722,25 @@ block_item_list
 block_item
 	: composite_primary_expression_without_braces assignment_operator assignment_expression ';'
 	| rval_expression ';'
+	/* | DEBUG_LEXEM parrot { std::cout << "\n\nHHHHHHHHHH:\n\n" << $2.a << " " << $2.b << std::endl; } */
 	/* | cast_expression ';' */
 	/* | prefix_postfix_statement ';' */
 	| direct_declarator '=' assignment_expression ';'
 	| direct_declarator ';'
-	| selection_statement
+	| selection_statement { $$.hello(); }
 	| iteration_statement
 	| OUTPUT '(' I_CONSTANT ',' expression ')' ';'
 	| ';'
 	/* : declaration */
 	/* | statement */
 	;
+
+parrot
+	: child { $$.a = $1.a; $$.b = 3; }
+	;
+
+child
+	: DEBUG_LEXEM { $$.a = 4; }
 
 func_block_item
 	: block_item

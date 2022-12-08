@@ -35,6 +35,7 @@ WS    [ \t\v\f]
 %%
 
 "HAHA"                      { lxWrap(yytext); return process_error(); }
+"DEBUG_LEXEM"               {return token_type::DEBUG_LEXEM;}
 
 "/*"                                    { comment(); }
 "//".*                                    { /* consume //-comment */ }
