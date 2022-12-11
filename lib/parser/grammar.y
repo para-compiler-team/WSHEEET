@@ -111,45 +111,168 @@ parser::token_type yylex(parser::semantic_type* yylval,
 
 %%
 
-nucleus_primary_expression
-	: constant
-	| string
+translation_unit
+	: layer_definition_list
+	| block_item_list
+	;
+
+layer_definition_list	
+	: layer_definition
+	| layer_definition_list layer_definition
+
+layer_definition:
+	LAYER '(' I_CONSTANT ',' STRING_LITERAL ')' compound_statement
+	;
+
+compound_statement
+	: '{' '}'
+	| '{'  block_item_list '}'
+	;
+
+block_item_list
+	: block_item
+	| block_item_list block_item
+	;
+
+/* =====================================================================*/
+block_item
+	: general_statement
+	| explicit_decl_statement
+	| selection_statement { $$.hello(); }
+	| iteration_statement
+	| output_statement
+	| empty_statement
+	;
+
+general_statement
+	: composite_primary_expression_without_braces assignment_operator assignment_expression_rval ';'
+	| rval_expression ';'
+	;
+
+/* // for array idx
+explicit_scalar_decl_expression
+	: scalar_direct_declarator '=' scalar_assignment_expression
+	| scalar_direct_declarator
+	;
+
+// for array idx
+scalar_direct_declarator
+	: IDENTIFIER colon_scalar_type_specifier
+	; */
+
+explicit_decl_expression
+	: direct_declarator '=' assignment_expression_rval
+	| direct_declarator
+
+explicit_decl_statement
+	: explicit_decl_expression ';'
+	;
+
+direct_declarator
+	: basic_declarator // {std::cout << "here" << std::endl;}
+	| function_declarator
+	| struct_declarator
+	;
+
+basic_declarator
+	: IDENTIFIER colon_type_specifier
+	;
+
+function_declarator
+	: IDENTIFIER ':' '(' func_arguments_decllist ')' // for paraSL functions
+	| IDENTIFIER ':' '(' func_arguments_decllist ')' colon_type_specifier // for paraSL functions
+	;
+
+struct_declarator
+	: IDENTIFIER ':' '{' struct_arguments_decllist '}'
+	;
+
+struct_arguments_decllist
+	: IDENTIFIER colon_type_specifier
+	| IDENTIFIER ':' '(' func_arguments_decllist ')'
+	| struct_arguments_decllist ',' IDENTIFIER colon_type_specifier
+	| struct_arguments_decllist ',' IDENTIFIER ':' '(' func_arguments_decllist ')'
+	;
+
+func_block_item
+	: block_item
+	| return_statement
+	;
+
+func_block_list
+	: func_block_item
+	| func_block_list func_block_item
+	;
+
+output_statement
+	: OUTPUT '(' I_CONSTANT ',' expression ')' ';'
+	;
+
+empty_statement
+	: ';'
+	;
+
+parrot
+	: child { $$.a = $1.a; $$.b = 3; }
+	;
+
+child
+	: DEBUG_LEXEM { $$.a = 4; }
+	;
+
+literal_primary_expression
+	: constant_literal
+	| STRING_LITERAL
+	/* | FUNC_NAME */
 	;
 
 primary_expression
 	: IDENTIFIER
 	;
 
-constant
+constant_literal
 	: I_CONSTANT	{std::cout << $$.a << "gg " << $$.b  << std::endl;}	// includes character_constant
 	| F_CONSTANT
 	;
 
-string
-	: STRING_LITERAL
-	/* | FUNC_NAME */
+// used in function params
+argument_list
+	: argument_expression
+	| argument_list ',' argument_expression
+	| %empty
+	;
+
+// used in function params
+argument_expression
+	: expression
 	;
 
 composite_primary_expression_without_braces
 	: primary_expression
-	| composite_primary_expression_without_braces '[' expression ']'
+	| composite_primary_expression_without_braces '[' expression_in_square_brackets ']'
 	| composite_primary_expression_without_braces '.' IDENTIFIER
+	;
+
+expression_in_square_brackets
+	: expression
 	;
 
 composite_primary_expression
 	: composite_primary_expression_without_braces
-	| composite_primary_expression '(' initialyzer_list ')'
+	| composite_primary_expression '(' argument_list ')'
 	;
 
 single_expression
-	: nucleus_primary_expression
+	: literal_primary_expression
 	| composite_primary_expression
 	| input_expression
 	;
 
 input_expression
 	: INPUT '(' I_CONSTANT ')'
-	| INPUT '(' I_CONSTANT ')' type_specifier
+	| INPUT '(' I_CONSTANT ')' colon_type_specifier
+	| INPUT '(' I_CONSTANT INLINE_RANGE I_CONSTANT ')' colon_array_type_specifier
+	| INPUT '(' I_CONSTANT INLINE_RANGE I_CONSTANT ')' colon_vector_type_specifier
 	;
 
 postfix_expression_or_single
@@ -248,13 +371,30 @@ rval_expression
 	: conditional_expression	// with constraints
 	;
 
-assignment_expression
+/* scalar_assignment_expression
+	: rval_expression
+	| composite_primary_expression_without_braces assignment_operator scalar_assignment_expression
+	; */
+
+assignment_expression_rval
 	: rval_expression
 	| builtin_rval_expression
-	| '{' initialyzer_list '}'
-	| '{' func_block_list '}'
-	| '{' func_block_list '}' '(' initialyzer_list ')'
-	| composite_primary_expression_without_braces assignment_operator assignment_expression
+	| agregate_rval
+	| function_decl_rval
+	| inline_function_rval
+	| composite_primary_expression_without_braces assignment_operator assignment_expression_rval
+	;
+
+function_decl_rval
+	: '{' func_block_list '}'
+	;
+
+agregate_rval
+	: '{' argument_list '}'
+	;
+
+inline_function_rval
+	: '{' func_block_list '}' '(' argument_list ')'
 	;
 
 builtin_rval_expression
@@ -274,11 +414,6 @@ glue_rval
 glue_initialyzer_list
 	: expression
 	| glue_initialyzer_list ',' expression
-
-initialyzer_list
-	: expression
-	| initialyzer_list ',' expression
-	| %empty
 	;
 
 glue_initialyzer_list3
@@ -290,9 +425,9 @@ bind_rval
 
 func_arguments_decllist
 	: IDENTIFIER
-	| IDENTIFIER type_specifier
+	| IDENTIFIER colon_type_specifier
 	| func_arguments_decllist ',' IDENTIFIER
-	| func_arguments_decllist ',' IDENTIFIER type_specifier
+	| func_arguments_decllist ',' IDENTIFIER colon_type_specifier
 	| %empty
 
 assignment_operator
@@ -310,7 +445,7 @@ assignment_operator
 	;
 
 expression
-	: assignment_expression { std::cout << "heeerre" << std::endl;  $$.b = 4; }
+	: assignment_expression_rval { std::cout << "heeerre" << std::endl;  $$.b = 4; }
 	;
 
 basic_type_specifier
@@ -321,7 +456,7 @@ basic_type_specifier
 	| DOUBLE
 	;
 
-colon_basic_type_specifier
+colon_scalar_type_specifier
 	: COLON_INT
 	| COLON_INT '(' I_CONSTANT ')'
 	| COLON_CHAR
@@ -329,69 +464,22 @@ colon_basic_type_specifier
 	| COLON_DOUBLE
 	;
 
-common_type_specifier
-	: colon_basic_type_specifier
-	| colon_basic_type_specifier '[' expression ']'
+colon_common_type_specifier
+	: colon_scalar_type_specifier
+	| colon_array_type_specifier 
+	;
+
+colon_array_type_specifier
+	: colon_scalar_type_specifier '[' I_CONSTANT ']'
+	;
+
+colon_vector_type_specifier
+	: COLON_VECTOR_LESS basic_type_specifier ',' I_CONSTANT '>'
 	;
 	
-type_specifier
-	: common_type_specifier
+colon_type_specifier
+	: colon_common_type_specifier
 	| COLON_VECTOR_LESS basic_type_specifier ',' I_CONSTANT '>'
-	;
-
-// var, array_elem, ...
-direct_declarator
-	: IDENTIFIER type_specifier // {std::cout << "here" << std::endl;}
-	| IDENTIFIER ':' '(' func_arguments_decllist ')' // for paraSL functions
-	| IDENTIFIER ':' '(' func_arguments_decllist ')' type_specifier // for paraSL functions
-	| IDENTIFIER ':' '{' struct_arguments_decllist '}'
-	;
-
-struct_arguments_decllist
-	: IDENTIFIER type_specifier
-	| IDENTIFIER ':' '(' func_arguments_decllist ')'
-	| struct_arguments_decllist ',' IDENTIFIER type_specifier
-	| struct_arguments_decllist ',' IDENTIFIER ':' '(' func_arguments_decllist ')'
-	;
-
-compound_statement
-	: '{' '}'
-	| '{'  block_item_list '}'
-	;
-
-block_item_list
-	: block_item
-	| block_item_list block_item
-	;
-
-/* =====================================================================*/
-block_item
-	: composite_primary_expression_without_braces assignment_operator assignment_expression ';'
-	| rval_expression ';'
-	| direct_declarator '=' assignment_expression ';'
-	| direct_declarator ';'
-	| selection_statement { $$.hello(); }
-	| iteration_statement
-	| OUTPUT '(' I_CONSTANT ',' expression ')' ';'
-	| ';'
-	;
-
-parrot
-	: child { $$.a = $1.a; $$.b = 3; }
-	;
-
-child
-	: DEBUG_LEXEM { $$.a = 4; }
-	;
-
-func_block_item
-	: block_item
-	| return_statement
-	;
-
-func_block_list
-	: func_block_item
-	| func_block_list func_block_item
 	;
 
 selection_statement
@@ -412,7 +500,7 @@ iteration_statement
 	;
 
 for_iterator
-	: IDENTIFIER colon_basic_type_specifier /* may be errors */
+	: IDENTIFIER colon_scalar_type_specifier /* may be errors */
 	| IDENTIFIER
 	;
 
@@ -481,18 +569,7 @@ return_statement
 	: RETURN expression ';'
 	;
 /* =============================================================== */
-translation_unit
-	: layer_definition_list
-	| block_item_list
-	;
 
-layer_definition_list	
-	: layer_definition
-	| layer_definition_list layer_definition
-
-layer_definition:
-	LAYER '(' I_CONSTANT ',' STRING_LITERAL ')' compound_statement
-	;
 %%
 
 namespace yy {
