@@ -16,4 +16,4 @@
 # WSHEEET. If not, see <https://www.gnu.org/licenses/>.
 # ---------------------------------------------------------------------------- #
 
-add_subdirectory(AST)
+add_subdirectory(lib)

@@ -23,31 +23,35 @@
 
 #include <list>
 
-namespace wsheeet::AST {
+namespace wsheeet::ast {
 
-class IStmt : public IExprParent {}; // class StmtBase
+class Scope;
 
-class ExprStmt : public IStmt,
-                 public TreeNodeWParentAndCh<Scope, IExpr> {}; // class ExprStmt
+class StmtBase : public ExprParent {};
 
-class CompoundStmt : public IStmt,
-                     public TreeNodeWParentAndCh<Scope, std::list<IStmt>> {
-}; // class CompoundStmt
+class ExprStmt : public TreeNodeWParentAndChild<Scope, ExprBase>,
+                 public StmtBase {}; // class ExprStmt
 
-class IfStmt : public IStmt,
-               public TreeNodeWParentAnd2Ch<Scope, IStmt, IStmt> {
+class CompoundStmt : public TreeNodeWParentAndChild<Scope, std::list<StmtBase>>,
+                     public StmtBase {}; // class CompoundStmt
+
+#ifdef WITH_COMPOUND_CF
+class IfStmt
+    : public TreeNodeWParentAnd2Ch<Scope, IStmt, IStmt, public StmtBase> {
 }; // class IfStmt
 
-class ForStmt : public IStmt,
-                public TreeNodeWParentAnd3Ch<Scope, DeclRefExpr, IExpr, IStmt> {
+class ForStmt : public TreeNodeWParentAnd3Ch<Scope, DeclRefExpr, IExpr, IStmt,
+                                             public StmtBase> {
 }; // class ForStmt
 
-class WhileStmt : public IStmt,
-                  public TreeNodeWParentAnd2Ch<Scope, IExpr, IStmt> {
+class WhileStmt
+    : public TreeNodeWParentAnd2Ch<Scope, IExpr, IStmt, public StmtBase> {
 }; // class WhileStmt
+#endif
 
-class ReturnStmt : public IStmt,
-                   public TreeNodeWParentAndCh<Scope, IExpr> {
+#ifdef WITH_FUNC
+class ReturnStmt : public TreeNodeWParentAndCh<Scope, IExpr, public StmtBase> {
 }; // class ReturnStmt
+#endif
 
-} // namespace wsheeet::AST
+} // namespace wsheeet::ast

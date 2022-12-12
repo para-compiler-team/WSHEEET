@@ -1,0 +1,7 @@
+if(BUILD_TESTING)
+  set(TESTS_LIST token)
+  foreach(TEST_NAME IN LISTS TESTS_LIST)
+    add_executable(${TEST_NAME} "${CMAKE_CURRENT_SOURCE_DIR}/AST/${TEST_NAME}.cc")
+    add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
+  endforeach()
+endif()

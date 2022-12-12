@@ -19,61 +19,58 @@
 #pragma once
 
 #include "Expr.hpp"
-#include "Stmt.hpp"
-#include "SymbolTable.hpp"
 #include "TreeNode.hpp"
+#include "Stmt.hpp"
 
-#include <DebugLoc.hpp>
-#include <Type.hpp>
-
-#include <list>
 #include <string>
 #include <string_view>
 
-namespace wsheeet::AST {
+namespace wsheeet::ast {
 
-class IStmt;
 class LayerDecl;
+class Scope : public ExprParent {}; // class Scope
 
-class Scope : public ITreeNode {}; // class Scope
-
-class IDeclStmt : public IStmt {
+class GlobalScope : public TreeNodeWManyChildren<LayerDecl>, public Scope {
+  using NodeT = TreeNodeWManyChildren<LayerDecl>;
 public:
-  [[nodiscard]] virtual std::string_view name() const = 0;
-}; // class IDecl
-
-class GlobalScope : public TreeNodeWManyCh<LayerDecl> {
-public:
-  GlobalScope() = default;
+    GlobalScope() : NodeT{} {}
 };
 
-class LayerDecl final : public TreeNodeWParentAndCh<GlobalScope, CompoundStmt>,
-                        public IDeclStmt {
+class DeclBase : public TreeNodeWParent<Scope> {
+  using NodeT = TreeNodeWParent<Scope>;
+public:
+   DeclBase(Scope &S) : NodeT(&S) {}
+};
+
+class LayerDecl final : public DeclBase, public TreeNodeWChild<CompoundStmt>{
   unsigned LayerNum_;
   std::string TUName_;
 
+  using NodeT = TreeNodeWChild<CompoundStmt>;
+
 public:
   LayerDecl(GlobalScope &GScope, CompoundStmt &CStmt, unsigned LayerNumber)
-      : TreeNodeWParentAndCh{&GScope, &CStmt}, LayerNum_{LayerNumber},
+    : DeclBase{GScope}, NodeT{&CStmt}, LayerNum_{LayerNumber},
         TUName_{"unnamed layer"} {}
+
   LayerDecl(GlobalScope &GScope, CompoundStmt &CStmt, unsigned LayerNumber,
             std::string_view Name)
-      : TreeNodeWParentAndCh{&GScope, &CStmt}, LayerNum_{LayerNumber},
+      : DeclBase{GScope}, NodeT{&CStmt}, LayerNum_{LayerNumber},
         TUName_{Name} {}
 }; // class LayerDecl
 
-class GlueTypeDecl final : public TreeNodeWManyCh<IType>, public IDeclStmt {
+#ifdef WITH_GLUE
+class GlueTypeDecl final : public TreeNodeWManyChildren<TypeBase> {
   std::vector<Identifier> Members;
 };
+#endif
 
-template <concepts::Expr InitExpr>
-class ValueDecl : public TreeNodeWParentAnd2Ch<Scope, DeclRefExpr, InitExpr>,
-                  public IDeclStmt {}; // class ValueDecl
+#ifdef WITH_DECL_REF_EXPR
+template <Type T>
+class VarDecl : public TreeNodeWParentAnd2Ch<Scope, DeclRefExpr, ExprBase>;
+#endif
 
-template <concepts::Type T>
-class VarDecl : public TreeNodeWParentAnd2Ch<Scope, DeclRefExpr, IExpr>,
-                public IDeclStmt {}; // class VarDecl
-
+#ifdef WITH_FUNCTION
 class FunctionTypeDecl final : public TreeNodeW2Ch<IType, ArgList<IType>>,
                                public IDeclStmt {}; // class FunctionTypeDecl
 
@@ -86,5 +83,6 @@ public:
       : TreeNodeWParentAnd2Ch<Scope, DeclRefExpr, CompoundStmt>(&S, &I,
                                                                 &CStmt) {}
 }; // class FnDecl
+#endif
 
-} // namespace wsheeet::AST
+} // namespace wsheeet::ast

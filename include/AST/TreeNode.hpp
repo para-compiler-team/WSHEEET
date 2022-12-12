@@ -18,418 +18,385 @@
 
 #pragma once
 
-#include <algorithm>
 #include <concepts>
 #include <initializer_list>
 #include <list>
 #include <memory>
-#include <type_traits>
 
-namespace wsheeet::AST {
+namespace wsheeet::ast {
 
-class INode {}; // class INode
+class TreeNodeBase {}; // class ITreeNode
 
-class ITreeNode : public INode {
-public:
-}; // class ITreeNode
+template <class T>
+concept TreeNode = std::derived_from<T, TreeNodeBase>;
 
-template <typename P> class ITreeNodeWParent : public virtual ITreeNode {
-public:
-  using ParentTy = P;
+template <class T, class C>
+concept CanLinkChild = requires(T Node) {
+  typename T::ChildTy;
+  Node.linkChild(std::declval<typename T::ChildTy>());
+}
+&&std::same_as<typename T::ChildTy, C>;
 
-  virtual bool isRoot() const = 0;
+template <class T, class C>
+concept CanUnlinkChild = requires(T Node) {
+  typename T::ChildTy;
+  Node.unlinkChild();
+}
+&&std::same_as<typename T::ChildTy, C>;
 
-  virtual ParentTy *parent() = 0;
-  virtual const ParentTy *parent() const = 0;
+template <class T, class C>
+concept CanLinkLeftChild = requires(T Node) {
+  typename T::LeftChildTy;
+  Node.linkLeft(std::declval<typename T::LeftChildTy>());
+}
+&&std::same_as<typename T::LeftChildTy, C>;
 
-  virtual ITreeNodeWParent *linkParent(ParentTy *) = 0;
-  virtual ITreeNodeWParent *unlinkParent() = 0;
-}; // class ITreeNodeWParent
+template <class T, class C>
+concept CanLinkCenterChild = requires(T Node) {
+  typename T::CenterChildTy;
+  Node.linkCenter(std::declval<typename T::CenterChildTy>());
+}
+&&std::same_as<typename T::CenterChildTy, C>;
 
-template <typename T, typename P>
-concept CanLinkParent = std::derived_from<T, ITreeNodeWParent<P>>;
+template <class T, class C>
+concept CanLinkRightChild = requires(T Node) {
+  typename T::RightChildTy;
+  Node.linkRight(std::declval<typename T::RightChildTy>());
+}
+&&std::same_as<typename T::RightChildTy, C>;
 
-template <typename P> class TreeNodeWParent : public ITreeNodeWParent<P> {
+template <class T, class LC, class RC>
+concept CanLink2Children = CanLinkLeftChild<T, LC> && CanLinkRightChild<T, RC>;
+
+template <class T, class LC, class CC, class RC>
+concept CanLink3Children =
+    CanLink2Children<T, LC, RC> && CanLinkCenterChild<T, CC>;
+
+template <class T, class P>
+concept CanLinkParent = requires(T Node) {
+  typename T::ParentTy;
+  Node.linkParent(std::declval<typename T::ParentTy>());
+}
+&&std::same_as<typename T::ParentTy, P>;
+
+template <class T, class P>
+concept CanUnlinkParent = requires(T Node) {
+  typename T::ParentTy;
+  Node.unlinkParent();
+}
+&&std::same_as<typename T::ParentTy, P>;
+
+template <class P> class TreeNodeWParent : virtual public TreeNodeBase {
 public:
   using ParentTy = P;
 
 protected:
-  ParentTy *parent_;
+  std::unique_ptr<ParentTy> Parent_;
 
-  TreeNodeWParent(ParentTy *p = nullptr) : parent_{p} {}
+  TreeNodeWParent(ParentTy *Parent) : Parent_{Parent} {}
 
 public:
-  bool isRoot() const override { return parent_ == nullptr; }
+  bool isRoot() const { return static_cast<bool>(Parent_); }
 
-  ParentTy *parent() override { return parent_; }
-  const ParentTy *parent() const override { return parent_; }
-
-  // using ITreeNodeWParent<P>::linkParent;
-  ITreeNodeWParent<P> *linkParent(ParentTy *parent) override {
-    parent_ = parent;
-    return this;
+  virtual const TreeNodeWParent &linkParent(ParentTy &&Parent) {
+    *Parent_ = std::move(Parent);
+    return *this;
   }
 
-  // using ITreeNodeWParent<P>::unlinkParent;
-  ITreeNodeWParent<P> *unlinkParent() override {
-    parent_ = nullptr;
-    return this;
+  virtual const TreeNodeWParent &unlinkParent() {
+    Parent_.release();
+    return *this;
   }
 
-  virtual ~TreeNodeWParent() {}
-}; // class ITreeNodeWParent
+  virtual ~TreeNodeWParent() { Parent_.release(); }
+}; // class TreeNodeWParent
 
-template <typename C> class ITreeNodeWCh : public virtual ITreeNode {
-public:
-  using ChildTy = C;
+static_assert(TreeNode<TreeNodeWParent<int>>,
+              "TreeNodeWParent expected to be TreeNode");
+static_assert(CanLinkParent<TreeNodeWParent<int>, int>,
+              "TreeNodeWParent must can link parent");
+static_assert(CanUnlinkParent<TreeNodeWParent<int>, int>,
+              "TreeNodeWParent must can unlink parent");
 
-  virtual ITreeNodeWCh *linkChild(ChildTy *child) = 0;
-  virtual ITreeNodeWCh *unlinkChild(ChildTy *child) = 0;
-#ifdef WITH_VIRTUAL_UNLINK_CHILD_VOID
-  virtual ITreeNodeWCh *unlinkChild() = 0;
-#endif
-}; // class ITreeNodeWCh
-
-template <typename C> class TreeNodeWCh : public ITreeNodeWCh<C> {
+template <class C> class TreeNodeWChild : virtual public TreeNodeBase {
 public:
   using ChildTy = C;
 
 protected:
-  ChildTy *child_;
+  std::unique_ptr<ChildTy> Child_;
 
-  TreeNodeWCh(ChildTy *child = nullptr) : child_{child} {}
+  TreeNodeWChild(ChildTy *Child) : Child_{Child} {}
 
 public:
-  ITreeNodeWCh<C> *linkChild(ChildTy *child) override {
-    child_ = child;
-    return this;
+  TreeNodeWChild &linkChild(ChildTy &&Child) {
+    *Child_ = std::move(Child);
+    if constexpr (CanLinkParent<ChildTy, decltype(*this)>) {
+      if (Child_)
+        Child_->linkParent(this);
+    }
+    return *this;
   }
 
-  ITreeNodeWCh<C> *unlinkChild(ChildTy *child) override {
-    if (child_ == child)
-      child_ = nullptr;
-    return this;
+  TreeNodeWChild &unlinkChild() {
+    Child_.reset(nullptr);
+    return *this;
   }
-}; // Class TreeNodeWCh
 
-template <typename P, typename C>
-class TreeNodeWParentAndCh : public virtual TreeNodeWParent<P>,
-                             public virtual TreeNodeWCh<C> {
+  virtual ~TreeNodeWChild() = default;
+}; // Class TreeNodeWChild
+
+static_assert(TreeNode<TreeNodeWChild<int>>,
+              "TreeNodeWChild expected to be TreeNode");
+static_assert(CanLinkChild<TreeNodeWChild<int>, int>,
+              "TreeNodeWChild must can link child");
+static_assert(CanUnlinkChild<TreeNodeWChild<int>, int>,
+              "TreeNodeWChild must can unlink child");
+
+template <class P, class C>
+class TreeNodeWParentAndChild : public TreeNodeWParent<P>,
+                                public TreeNodeWChild<C> {
 public:
   using ParentTy = P;
   using ChildTy = C;
 
 protected:
-  using TreeNodeWParent<ParentTy>::parent_;
-  using TreeNodeWCh<ChildTy>::child_;
+  using TreeNodeWParent<ParentTy>::Parent_;
+  using TreeNodeWChild<ChildTy>::Child_;
 
-  TreeNodeWParentAndCh(ParentTy *p = nullptr, ChildTy *c = nullptr)
-      : TreeNodeWParent<P>{p}, TreeNodeWCh<C>{c} {}
-}; // class TreeNodeWParentAndCh
+  TreeNodeWParentAndChild(ParentTy *Parent, ChildTy *Child)
+      : TreeNodeWParent<P>{Parent}, TreeNodeWChild<C>{Child} {}
+
+public:
+  using TreeNodeWParent<ParentTy>::isRoot;
+  using TreeNodeWParent<ParentTy>::linkParent;
+  using TreeNodeWParent<ParentTy>::unlinkParent;
+  using TreeNodeWChild<ChildTy>::linkChild;
+  using TreeNodeWChild<ChildTy>::unlinkChild;
+
+  virtual ~TreeNodeWParentAndChild() = default;
+}; // class TreeNodeWParentAndChild
+
+static_assert(TreeNode<TreeNodeWParentAndChild<float, int>>,
+              "TreeNodeWParent expected to be TreeNode");
+static_assert(CanLinkParent<TreeNodeWParentAndChild<float, int>, float>,
+              "TreeNodeWParentAndChild must can link parent");
+static_assert(CanUnlinkParent<TreeNodeWParentAndChild<float, int>, float>,
+              "TreeNodeWParentAndChild must can unlink parent");
+static_assert(CanLinkChild<TreeNodeWParentAndChild<float, int>, int>,
+              "TreeNodeWParentAndChild must can link child");
+static_assert(CanUnlinkChild<TreeNodeWParentAndChild<float, int>, int>,
+              "TreeNodeWParentAndChild must can unlink child");
 
 template <typename C1, typename C2>
-class ITreeNodeW2Ch : public ITreeNodeWCh<C1>, public ITreeNodeWCh<C2> {
+class TreeNodeW2Children : public virtual TreeNodeBase {
 public:
   using LeftChildTy = C1;
   using RightChildTy = C2;
 
-  virtual LeftChildTy *left() = 0;
-  virtual const LeftChildTy *left() const = 0;
-
-  virtual RightChildTy *right() = 0;
-  virtual const RightChildTy *right() const = 0;
-
-  virtual ITreeNodeW2Ch *linkLeft(LeftChildTy *child) = 0;
-  virtual ITreeNodeW2Ch *linkRight(RightChildTy *child) = 0;
-}; // class TreeNodeW2Ch
-
-template <typename C> class ITreeNodeW2Ch<C, C> : public ITreeNodeWCh<C> {
-public:
-  using LeftChildTy = C;
-  using RightChildTy = C;
-
-  virtual LeftChildTy *left() = 0;
-  virtual const LeftChildTy *left() const = 0;
-
-  virtual RightChildTy *right() = 0;
-  virtual const RightChildTy *right() const = 0;
-
-  virtual ITreeNodeW2Ch *linkLeft(LeftChildTy *child) = 0;
-  virtual ITreeNodeW2Ch *linkRight(RightChildTy *child) = 0;
-}; // class TreeNodeW2Ch
-
-template <typename T, typename C>
-concept CanLinkChildren = std::derived_from<T, ITreeNodeWCh<C>>;
-
-template <typename C1, typename C2>
-class TreeNodeW2Ch : public ITreeNodeW2Ch<C1, C2> {
-public:
-  using LeftChildTy = C1;
-  using RightChildTy = C2;
-
 protected:
-  LeftChildTy *left_;
-  RightChildTy *right_;
+  std::unique_ptr<LeftChildTy> Left_;
+  std::unique_ptr<RightChildTy> Right_;
 
-  TreeNodeW2Ch(LeftChildTy *l = nullptr, RightChildTy *r = nullptr)
-      : left_{l}, right_{r} {}
+  TreeNodeW2Children(LeftChildTy *Left, RightChildTy *Right)
+      : Left_{Left}, Right_{Right} {}
 
 public:
-  LeftChildTy *left() override { return left_; }
-  const LeftChildTy *left() const override { return left_; }
-
-  RightChildTy *right() override { return right_; }
-  const RightChildTy *right() const override { return right_; }
-
-  TreeNodeW2Ch *linkLeft(LeftChildTy *child) override {
-    left_ = child;
+  TreeNodeW2Children &linkLeft(LeftChildTy &&Child) {
+    *Left_ = Child;
+    if constexpr (CanLinkParent<LeftChildTy, decltype(*this)>) {
+      if (Left_)
+        Left_->linkParent(this);
+    }
     return this;
   }
 
-  TreeNodeW2Ch *linkRight(RightChildTy *child) override {
-    right_ = child;
+  TreeNodeW2Children &linkRight(RightChildTy &&Child) {
+    *Right_ = Child;
+    if constexpr (CanLinkParent<RightChildTy, decltype(*this)>) {
+      if (Right_)
+        Right_->linkParent(this);
+    }
     return this;
   }
 
-  TreeNodeW2Ch *linkChild(LeftChildTy *child) override {
-    return linkLeft(child);
+  TreeNodeW2Children &linkChild(LeftChildTy &&Child) { return linkLeft(Child); }
+
+  TreeNodeW2Children &linkChild(RightChildTy &&Child) {
+    return linkRight(Child);
   }
 
-  TreeNodeW2Ch *unlinkChild(LeftChildTy *child) override {
-    if (left_ == child)
-      left_ = nullptr;
-
-    return this;
+  TreeNodeW2Children &unlinkLeft() {
+    Left_.reset(nullptr);
+    return *this;
   }
 
-  TreeNodeW2Ch *linkChild(RightChildTy *child) override {
-    return linkRight(child);
+  TreeNodeW2Children &unlinkRight() {
+    Right_.reset(nullptr);
+    return *this;
   }
 
-  TreeNodeW2Ch *unlinkChild(RightChildTy *child) override {
-    if (right_ == child)
-      right_ = nullptr;
+  virtual ~TreeNodeW2Children() = default;
+}; // class TreeNodeW2Children
 
-    return this;
-  }
-}; // class TreeNodeW2Ch
+static_assert(TreeNode<TreeNodeW2Children<float, int>>,
+              "TreeNodeWParent expected to be TreeNode");
+static_assert(CanLinkLeftChild<TreeNodeW2Children<float, int>, float>,
+              "TreeNodeWParentAndChild must can link left child");
+static_assert(CanLinkRightChild<TreeNodeW2Children<float, int>, int>,
+              "TreeNodeWParentAndChild must can link right child");
+static_assert(CanLink2Children<TreeNodeW2Children<float, int>, float, int>,
+              "TreeNodeWParentAndChild must can link 2 children");
 
-template <typename C> class TreeNodeW2Ch<C, C> : public ITreeNodeW2Ch<C, C> {
+template <typename C>
+class TreeNodeW2Children<C, C> : public virtual TreeNodeBase {
 public:
   using LeftChildTy = C;
   using RightChildTy = C;
 
 protected:
-  LeftChildTy *left_;
-  RightChildTy *right_;
+  std::unique_ptr<LeftChildTy> Left_;
+  std::unique_ptr<RightChildTy> Right_;
 
-  TreeNodeW2Ch(LeftChildTy *l = nullptr, RightChildTy *r = nullptr)
-      : left_{l}, right_{r} {}
+  TreeNodeW2Children(LeftChildTy *Left, RightChildTy *Right)
+      : Left_{Left}, Right_{Right} {}
 
 public:
-  LeftChildTy *left() override { return left_; }
-  const LeftChildTy *left() const override { return left_; }
-
-  RightChildTy *right() override { return right_; }
-  const RightChildTy *right() const override { return right_; }
-
-  TreeNodeW2Ch *linkLeft(LeftChildTy *child) override {
-    left_ = child;
-    return this;
-  }
-
-  TreeNodeW2Ch *linkRight(RightChildTy *child) override {
-    right_ = child;
-    return this;
-  }
-
-  TreeNodeW2Ch *linkChild(RightChildTy *child) override {
-    return linkRight(child);
-  }
-
-  TreeNodeW2Ch *unlinkChild(RightChildTy *child) override {
-    if (left_ == child) {
-      left_ = nullptr;
-      return this;
+  TreeNodeW2Children &linkLeft(LeftChildTy &&Child) {
+    *Left_ = Child;
+    if constexpr (CanLinkParent<LeftChildTy, decltype(*this)>) {
+      if (Left_)
+        Left_->linkParent(this);
     }
-
-    if (right_ == child) {
-      right_ = nullptr;
-      return this;
-    }
-
     return this;
   }
-}; // class TreeNodeW2Ch
+
+  TreeNodeW2Children &linkRight(RightChildTy &&Child) {
+    *Right_ = Child;
+    if constexpr (CanLinkParent<RightChildTy, decltype(*this)>) {
+      if (Right_)
+        Right_->linkParent(this);
+    }
+    return this;
+  }
+
+  TreeNodeW2Children &unlinkLeft() {
+    Left_.reset(nullptr);
+    return *this;
+  }
+
+  TreeNodeW2Children &unlinkRight() {
+    Right_.reset(nullptr);
+    return *this;
+  }
+
+  virtual ~TreeNodeW2Children() = default;
+}; // class TreeNodeW2Children
+
+static_assert(TreeNode<TreeNodeW2Children<int, int>>,
+              "TreeNodeWParent expected to be TreeNode");
+static_assert(CanLinkLeftChild<TreeNodeW2Children<int, int>, int>,
+              "TreeNodeWParentAndChild must can link left child");
+static_assert(CanLinkRightChild<TreeNodeW2Children<int, int>, int>,
+              "TreeNodeWParentAndChild must can link right child");
+static_assert(CanLink2Children<TreeNodeW2Children<int, int>, int, int>,
+              "TreeNodeWParentAndChild must can link 2 children");
 
 template <typename P, typename C1, typename C2>
-class TreeNodeWParentAnd2Ch : public TreeNodeWParent<P>,
-                              public TreeNodeW2Ch<C1, C2> {
+class TreeNodeWParentAnd2Children : public TreeNodeWParent<P>,
+                                    public TreeNodeW2Children<C1, C2> {
 public:
   using ParentTy = P;
   using LeftChildTy = C1;
   using RightChildTy = C2;
 
 protected:
-  using TreeNodeWParent<ParentTy>::parent_;
-  using TreeNodeW2Ch<LeftChildTy, RightChildTy>::left_;
-  using TreeNodeW2Ch<LeftChildTy, RightChildTy>::right_;
+  using TreeNodeWParent<ParentTy>::Parent_;
+  using TreeNodeW2Children<LeftChildTy, RightChildTy>::Left_;
+  using TreeNodeW2Children<LeftChildTy, RightChildTy>::Right_;
 
-  TreeNodeWParentAnd2Ch(ParentTy *p, LeftChildTy *l = nullptr,
-                        RightChildTy *r = nullptr)
-      : TreeNodeWParent<ParentTy>{p}, TreeNodeW2Ch<LeftChildTy, RightChildTy>{
-                                          l, r} {
+  TreeNodeWParentAnd2Children(ParentTy *Parent, LeftChildTy *Left,
+                              RightChildTy *Right)
+      : TreeNodeWParent<ParentTy>{Parent},
+        TreeNodeW2Children<LeftChildTy, RightChildTy>{Left, Right} {
     if constexpr (CanLinkParent<LeftChildTy, decltype(*this)>) {
-      if (left_ != nullptr)
-        left_->linkParent(this);
+      if (Left_)
+        Left_->linkParent(this);
     }
 
     if constexpr (CanLinkParent<RightChildTy, decltype(*this)>) {
-      if (right_ != nullptr)
-        right_->linkParent(this);
+      if (Right_)
+        Right_->linkParent(this);
     }
   }
 
 public:
-  TreeNodeWParentAnd2Ch *linkLeft(LeftChildTy *child) override {
-    if (child == nullptr) {
-      left_ = nullptr;
-      return this;
-    }
+  using TreeNodeWParent<ParentTy>::isRoot;
+  using TreeNodeWParent<ParentTy>::linkParent;
+  using TreeNodeWParent<ParentTy>::unlinkParent;
 
-    left_ = child;
-    if constexpr (CanLinkParent<LeftChildTy, decltype(*this)>) {
-      left_->linkParent(this);
-    }
-    return this;
-  }
+  using TreeNodeW2Children<LeftChildTy, RightChildTy>::linkLeft;
+  using TreeNodeW2Children<LeftChildTy, RightChildTy>::unlinkLeft;
+  using TreeNodeW2Children<LeftChildTy, RightChildTy>::linkRight;
+  using TreeNodeW2Children<LeftChildTy, RightChildTy>::unlinkRight;
 
-  TreeNodeWParentAnd2Ch *linkRight(RightChildTy *child) override {
-    if (child == nullptr) {
-      right_ = nullptr;
-      return this;
-    }
+  virtual ~TreeNodeWParentAnd2Children() = default;
+}; // class TreeNodeWParentAnd2Children
 
-    right_ = child;
-    if constexpr (CanLinkParent<RightChildTy, decltype(*this)>) {
-      right_->linkParent(this);
-    }
-    return this;
-  }
-
-  TreeNodeWParentAnd2Ch *linkParent(ParentTy *parent) override {
-    if constexpr (CanLinkChildren<ParentTy, decltype(*this)>)
-      parent_.unlinkChild(this);
-
-    parent_ = parent;
-    if constexpr (CanLinkChildren<ParentTy, decltype(*this)>)
-      parent_.linkChild(this);
-
-    return this;
-  }
-}; // class TreeNodeWParentAnd2Ch
+static_assert(TreeNode<TreeNodeWParentAnd2Children<int, float, int>>,
+              "TreeNodeWParent expected to be TreeNode");
+static_assert(
+    CanLinkLeftChild<TreeNodeWParentAnd2Children<int, float, int>, float>,
+    "TreeNodeWParentAnd2Children must can link left child");
+static_assert(
+    CanLinkRightChild<TreeNodeWParentAnd2Children<int, float, int>, int>,
+    "TreeNodeWParentAnd2Children must can link right child");
+static_assert(
+    CanLink2Children<TreeNodeWParentAnd2Children<int, float, int>, float, int>,
+    "TreeNodeWParentAnd2Children must can link ParentAnd2 children");
 
 template <typename C1, typename C2, typename C3>
-class ITreeNodeW3Ch : public ITreeNodeWCh<C1>,
-                      public ITreeNodeWCh<C2>,
-                      public ITreeNodeWCh<C3> {
-public:
-  using LeftChildTy = C1;
-  using CenterChildTy = C2;
-  using RightChildTy = C3;
-
-  virtual LeftChildTy *left() = 0;
-  virtual const LeftChildTy *left() const = 0;
-
-  virtual CenterChildTy *center() = 0;
-  virtual const CenterChildTy *center() const = 0;
-
-  virtual RightChildTy *right() = 0;
-  virtual const RightChildTy *right() const = 0;
-
-  virtual ITreeNodeW3Ch *linkLeft(LeftChildTy *child) = 0;
-  virtual ITreeNodeW3Ch *linkCenter(CenterChildTy *child) = 0;
-  virtual ITreeNodeW3Ch *linkRight(RightChildTy *child) = 0;
-}; // class ITreeNodeW3Ch
-
-template <typename C1, typename C2, typename C3>
-class TreeNodeW3Ch : public ITreeNodeW3Ch<C1, C2, C3> {
+class TreeNodeW3Children : public TreeNodeW2Children<C1, C3> {
 public:
   using LeftChildTy = C1;
   using CenterChildTy = C2;
   using RightChildTy = C3;
 
 protected:
-  LeftChildTy *left_;
-  CenterChildTy *center_;
-  RightChildTy *right_;
+  using TreeNodeW2Children<LeftChildTy, RightChildTy>::Left_;
+  std::unique_ptr<CenterChildTy> Center_;
+  using TreeNodeW2Children<LeftChildTy, RightChildTy>::Right_;
 
-  TreeNodeW3Ch(LeftChildTy *l = nullptr, CenterChildTy *c = nullptr,
-               RightChildTy *r = nullptr)
-      : left_{l}, center_{c}, right_{r} {}
+  TreeNodeW3Children(LeftChildTy *Left, CenterChildTy *Center,
+                     RightChildTy *Right)
+      : TreeNodeW2Children<LeftChildTy, RightChildTy>{Left, Right},
+        Center_{Center} {}
 
 public:
-  LeftChildTy *left() override { return left_; }
-  const LeftChildTy *left() const override { return left_; }
+  using TreeNodeW2Children<LeftChildTy, RightChildTy>::linkLeft;
+  using TreeNodeW2Children<LeftChildTy, RightChildTy>::unlinkLeft;
+  using TreeNodeW2Children<LeftChildTy, RightChildTy>::linkRight;
+  using TreeNodeW2Children<LeftChildTy, RightChildTy>::unlinkRight;
 
-  CenterChildTy *center() override { return center_; }
-  const CenterChildTy *center() const override { return center_; }
-
-  RightChildTy *right() override { return right_; }
-  const RightChildTy *right() const override { return right_; }
-
-  TreeNodeW3Ch *linkLeft(LeftChildTy *child) override {
-    left_ = child;
+  TreeNodeW3Children &linkCenter(CenterChildTy &&child) {
+    *Center_ = child;
+    if constexpr (CanLinkParent<CenterChildTy, decltype(*this)>) {
+      if (Center_)
+        Center_->linkParent(this);
+    }
     return this;
   }
 
-  TreeNodeW3Ch *linkCenter(CenterChildTy *child) override {
-    left_ = child;
+  TreeNodeW3Children &unlinkCenter() {
+    *Center_.reset(nullptr);
     return this;
   }
 
-  TreeNodeW3Ch *linkRight(RightChildTy *child) override {
-    left_ = child;
-    return this;
-  }
-
-  TreeNodeW3Ch *linkChild(LeftChildTy *child) override {
-    return linkLeft(child);
-  }
-
-  TreeNodeW3Ch *linkChild(CenterChildTy *child) override {
-    return linkCenter(child);
-  }
-
-  TreeNodeW3Ch *linkChild(RightChildTy *child) override {
-    return linkRight(child);
-  }
-
-  TreeNodeW3Ch *unlinkChild(LeftChildTy *child) override {
-    if (left_ == child)
-      left_ = nullptr;
-
-    return this;
-  }
-
-  TreeNodeW3Ch *unlinkChild(CenterChildTy *child) override {
-    if (center_ == child)
-      center_ = nullptr;
-
-    return this;
-  }
-
-  TreeNodeW3Ch *unlinkChild(RightChildTy *child) override {
-    if (right_ == child)
-      right_ = nullptr;
-
-    return this;
-  }
+  virtual ~TreeNodeW3Children() = default;
 }; // class ITreeNodeW3Ch
 
 template <typename P, typename C1, typename C2, typename C3>
-class TreeNodeWParentAnd3Ch : public TreeNodeWParent<P>,
-                              public TreeNodeW3Ch<C1, C2, C3> {
+class TreeNodeWParentAnd3Children : public TreeNodeWParent<P>,
+                                    public TreeNodeW3Children<C1, C2, C3> {
 public:
   using ParentTy = P;
   using LeftChildTy = C1;
@@ -437,140 +404,127 @@ public:
   using RightChildTy = C3;
 
 protected:
-  using TreeNodeWParent<ParentTy>::parent_;
-  using TreeNodeW3Ch<LeftChildTy, CenterChildTy, RightChildTy>::left_;
-  using TreeNodeW3Ch<LeftChildTy, CenterChildTy, RightChildTy>::center_;
-  using TreeNodeW3Ch<LeftChildTy, CenterChildTy, RightChildTy>::right_;
+  using TreeNodeWParent<ParentTy>::Parent_;
+  using TreeNodeW3Children<LeftChildTy, CenterChildTy, RightChildTy>::Left_;
+  using TreeNodeW3Children<LeftChildTy, CenterChildTy, RightChildTy>::Center_;
+  using TreeNodeW3Children<LeftChildTy, CenterChildTy, RightChildTy>::Right_;
 
-  TreeNodeWParentAnd3Ch(ParentTy *p, LeftChildTy *l = nullptr,
-                        CenterChildTy *c = nullptr, RightChildTy *r = nullptr)
+  TreeNodeWParentAnd3Children(ParentTy *p, LeftChildTy *l = nullptr,
+                              CenterChildTy *c = nullptr,
+                              RightChildTy *r = nullptr)
       : TreeNodeWParent<ParentTy>{p},
-        TreeNodeW3Ch<LeftChildTy, CenterChildTy, RightChildTy>{l, c, r} {
+        TreeNodeW3Children<LeftChildTy, CenterChildTy, RightChildTy>{l, c, r} {
     if constexpr (CanLinkParent<LeftChildTy, decltype(*this)>) {
-      if (left_ != nullptr)
-        left_->linkParent(this);
+      if (Left_)
+        Left_->linkParent(this);
     }
 
     if constexpr (CanLinkParent<CenterChildTy, decltype(*this)>) {
-      if (center_ != nullptr)
-        center_->linkParent(this);
+      if (Center_)
+        Center_->linkParent(this);
     }
 
     if constexpr (CanLinkParent<RightChildTy, decltype(*this)>) {
-      if (right_ != nullptr)
-        right_->linkParent(this);
+      if (Right_)
+        Right_->linkParent(this);
     }
   }
 
 public:
-  TreeNodeWParentAnd3Ch *linkLeft(LeftChildTy *child) override {
-    if (child == nullptr) {
-      left_ = nullptr;
-      return this;
-    }
+  using TreeNodeWParent<ParentTy>::isRoot;
+  using TreeNodeWParent<ParentTy>::linkParent;
+  using TreeNodeWParent<ParentTy>::unlinkParent;
 
-    left_ = child;
-    if constexpr (CanLinkParent<LeftChildTy, decltype(*this)>)
-      left_->linkParent(this);
+  using TreeNodeW3Children<LeftChildTy, CenterChildTy, RightChildTy>::linkLeft;
+  using TreeNodeW3Children<LeftChildTy, CenterChildTy,
+                           RightChildTy>::unlinkLeft;
+  using TreeNodeW3Children<LeftChildTy, CenterChildTy,
+                           RightChildTy>::linkCenter;
+  using TreeNodeW3Children<LeftChildTy, CenterChildTy,
+                           RightChildTy>::unlinkCenter;
+  using TreeNodeW3Children<LeftChildTy, CenterChildTy, RightChildTy>::linkRight;
+  using TreeNodeW3Children<LeftChildTy, CenterChildTy,
+                           RightChildTy>::unlinkRight;
 
-    return this;
-  }
+  virtual ~TreeNodeWParentAnd3Children() = default;
+}; // class TreeNodeWParentAnd3Children
 
-  TreeNodeWParentAnd3Ch *linkCenter(CenterChildTy *child) override {
-    if (child == nullptr) {
-      center_ = nullptr;
-      return this;
-    }
-
-    center_ = child;
-    if constexpr (CanLinkParent<CenterChildTy, decltype(*this)>)
-      center_->linkParent(this);
-
-    return this;
-  }
-
-  TreeNodeWParentAnd3Ch *linkRight(RightChildTy *child) override {
-    if (child == nullptr) {
-      right_ = nullptr;
-      return this;
-    }
-
-    right_ = child;
-    if constexpr (CanLinkParent<RightChildTy, decltype(*this)>)
-      right_->linkParent(this);
-
-    return this;
-  }
-
-  TreeNodeWParentAnd3Ch *linkParent(ParentTy *parent) override {
-    if constexpr (CanLinkChildren<ParentTy, decltype(*this)>)
-      parent_.unlinkChild(this);
-
-    parent_ = parent;
-    if constexpr (CanLinkChildren<ParentTy, decltype(*this)>)
-      parent_.linkChild(this);
-
-    return this;
-  }
-}; // class TreeNodeWParentAnd3Ch
-
-template <typename C> class ITreeNodeWManyCh : public ITreeNodeWCh<C> {
-public:
-  using ChildTy = C;
-
-  virtual ChildTy *first() const = 0;
-  virtual ChildTy *last() const = 0;
-}; // class ITreeNodeWManyCh
-
-template <typename C> class TreeNodeWManyCh : public ITreeNodeWManyCh<C> {
+template <typename C> class TreeNodeWManyChildren : virtual public TreeNodeBase {
 public:
   using ChildTy = C;
 
 protected:
-  std::list<ChildTy *> Children_;
+  using ListTy = std::list<std::unique_ptr<ChildTy>>;
+  ListTy Children_;
 
-  TreeNodeWManyCh(std::initializer_list<ChildTy *> Children = {})
+  TreeNodeWManyChildren() = default;
+
+  TreeNodeWManyChildren(std::initializer_list<ChildTy *> Children)
       : Children_{Children} {
-    if constexpr (CanLinkParent<ChildTy, decltype(*this)>)
-      for (ChildTy *Child : Children_)
-        Child->linkParent(this);
+    for (auto &Child : Children_) {
+      if (Child) {
+        if constexpr (CanLinkParent<ChildTy, decltype(*this)>)
+          Child->linkParent(this);
+      } else {
+        Children.erase(&Child);
+      }
+    }
   }
 
 public:
-  ChildTy *first() const override { return Children_.front(); }
-  ChildTy *last() const override { return Children_.back(); }
+  auto begin() { return Children_.begin(); }
+  auto end() { return Children_.end(); }
+  auto begin() const { return Children_.begin(); }
+  auto end() const { return Children_.end(); }
 
-  TreeNodeWManyCh *linkChild(ChildTy *Child) override {
-    if (std::count(Children_.begin(), Children_.end(), Child) == 0)
-      Children_.push_back(Child);
-
-    return this;
+  TreeNodeWManyChildren &linkChild(ChildTy &&Child) {
+    Children_.emplace_back(std::make_unique<ChildTy>(Child));
+    return *this;
   }
 
-  TreeNodeWManyCh *unlinkChild(ChildTy *Child) override {
+  TreeNodeWManyChildren &unlinkChild(const ChildTy &Child) {
     Children_.remove(Child);
-    return this;
+    return *this;
   }
-}; // class TreeNodeWManyCh
+
+  TreeNodeWManyChildren &unlinkChild(typename ListTy::iterator Pos) {
+    Children_.erase(Pos);
+    return *this;
+  }
+
+  virtual ~TreeNodeWManyChildren() = default;
+}; // class TreeNodeWManyChildren
 
 template <typename P, typename C>
-class TreeNodeWParentAndManyCh : public TreeNodeWParent<P>,
-                                 public TreeNodeWManyCh<C> {
+class TreeNodeWParentAndManyChildren : public TreeNodeWParent<P>,
+                                 public TreeNodeWManyChildren<C> {
 public:
   using ParentTy = P;
   using ChildTy = C;
 
 protected:
-  using TreeNodeWParent<ParentTy>::parent_;
-  using TreeNodeWManyCh<ChildTy>::Children_;
+  using TreeNodeWParent<ParentTy>::Parent_;
+  using TreeNodeWManyChildren<ChildTy>::Children_;
 
-  TreeNodeWParentAndManyCh(ParentTy *Parent = nullptr,
-                           std::initializer_list<ChildTy *> Children = {})
-      : TreeNodeWParent<ParentTy>{Parent}, TreeNodeWManyCh<ChildTy>{Children} {}
+  TreeNodeWParentAndManyChildren(ParentTy *Parent,
+                           std::initializer_list<ChildTy *> Children)
+      : TreeNodeWParent<ParentTy>{Parent}, TreeNodeWManyChildren<ChildTy>{Children} {}
 
 public:
-}; // class TreeNodeWParentAndManyCh
+  using TreeNodeWParent<ParentTy>::isRoot;
+  using TreeNodeWParent<ParentTy>::linkParent;
+  using TreeNodeWParent<ParentTy>::unlinkParent;
 
+  using TreeNodeWManyChildren<ChildTy>::begin; // Does this use both const and non-const?
+  using TreeNodeWManyChildren<ChildTy>::end;   //
+
+  using TreeNodeWManyChildren<ChildTy>::linkChild;
+  using TreeNodeWManyChildren<ChildTy>::unlinkChild; // Does this use all overloads?
+
+  virtual ~TreeNodeWParentAndManyChildren() = default;
+}; // class TreeNodeWParentAndManyChildren
+
+#if 0
 template <typename T> class ListNode final : public INode {
   std::unique_ptr<ListNode> Prev_;
   std::unique_ptr<ListNode> Next_;
@@ -613,5 +567,6 @@ public:
   [[nodiscard]] T &operator*() const noexcept { return Data_; }
   [[nodiscard]] T *operator->() const noexcept { return &Data_; }
 }; // class List
+#endif
 
-} // namespace wsheeet::AST
+} // namespace wsheeet::ast

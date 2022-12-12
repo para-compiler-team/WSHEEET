@@ -21,28 +21,15 @@
 #include "Decl.hpp"
 #include "Type.hpp"
 
+#include <memory>
 #include <string>
 #include <string_view>
 #include <unordered_map>
 
 namespace wsheeet {
 
-class Identifier {
-  std::string Id_;
-
-public:
-  Identifier(std::string_view Name) : Id_(Name) {}
-}; // class Identifier
-
-class IdentifierInfo {
-  IDecl *Decl_;
-public:
-  IdentifierInfo(Scope &S, IType &Ty) : Scope_{&S}, Ty_{&Ty}, ParentId_{nullptr} {}
-  IdentifierInfo(Scope &S, IType &Ty, IdentifierInfo &ParentId) : Scope_{&S}, Ty_{&Ty}, ParentId_{&ParentId} {}
-}; // class IdentifierInfo
-
-class SymbolTable {
-  std::unordered_map<Identifier, std::vector<IdentifierInfo>> Table;
+class SymbolTable final {
+  std::unordered_map<std::string, std::vector<std::unique_ptr<DeclBase>>> Table_;
 }; // class SymbolTable
 
 } // namespace wsheeet
