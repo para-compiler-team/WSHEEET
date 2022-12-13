@@ -53,10 +53,17 @@ protected:
   ValueTy Value;
 
 public:
-  ConstSimpleValueExpr(wsheeet::ast::ExprParent &P, TypeTy &Ty, ValueTy Val)
+  ConstSimpleValueExpr(TypeTy &Ty, ValueTy Val)
+      : TreeNodeWParent{}, ExprBase{Ty}, Value{Val} {}
+
+  ConstSimpleValueExpr(ExprParent &P, TypeTy &Ty, ValueTy Val)
       : TreeNodeWParent{&P}, ExprBase{Ty}, Value{Val} {}
 
   ValueTy value() const { return Value; }
+
+  void linkParent(ExprParent *Parent) { linkParent(Parent); }
+
+  void linkParent(ExprParent &Parent) { linkParent(&Parent); }
 }; // class ConstValueExpr
 
 using IntLiteral = ConstSimpleValueExpr<IntTy>;
@@ -89,12 +96,19 @@ class UnOpExpr final : protected TreeNodeWParentAndChild<ExprParent, ExprBase>,
   using NodeT = TreeNodeWParentAndChild<ExprParent, ExprBase>;
 
 public:
+  UnOpExpr(ExprBase &Child, UnOpcode Opcode)
+      : NodeT{&Child}, ExprBase{Child.type()}, Opcode_(Opcode) {}
+
   UnOpExpr(ExprParent &Parent, ExprBase &Child, UnOpcode Opcode)
       : NodeT{&Parent, &Child}, ExprBase{Child.type()}, Opcode_(Opcode) {}
 
   auto opcode() const noexcept { return Opcode_; }
   ExprBase &child() { return *Child_; }
   const ExprBase &child() const { return *Child_; }
+
+  void linkParent(ExprParent *Parent) { linkParent(Parent); }
+
+  void linkParent(ExprParent &Parent) { linkParent(&Parent); }
 }; // class UnOpExpr
 
 enum class BinOpcode {
@@ -138,14 +152,24 @@ class BinOpExpr final
   using NodeT = TreeNodeWParentAnd2Children<ExprParent, ExprBase, ExprBase>;
 
 public:
-  BinOpExpr(ExprParent &Parent, ExprBase &Left, ExprBase &Right, BinOpcode Opcode)
-      : NodeT{&Parent, &Left, &Right}, ExprBase{Left.type().builder().getGeneric()}, Opcode_(Opcode) {}
+  BinOpExpr(ExprBase &Left, ExprBase &Right, BinOpcode Opcode)
+      : NodeT{&Left, &Right}, ExprBase{Left.type().builder().getGeneric()},
+        Opcode_(Opcode) {}
+
+  BinOpExpr(ExprParent &Parent, ExprBase &Left, ExprBase &Right,
+            BinOpcode Opcode)
+      : NodeT{&Parent, &Left, &Right},
+        ExprBase{Left.type().builder().getGeneric()}, Opcode_(Opcode) {}
 
   auto opcode() const noexcept { return Opcode_; }
   ExprBase &LHS() { return *Left_; }
   ExprBase &RHS() { return *Right_; }
   const ExprBase &LHS() const { return *Left_; }
   const ExprBase &RHS() const { return *Right_; }
+
+  void linkParent(ExprParent *Parent) { linkParent(Parent); }
+
+  void linkParent(ExprParent &Parent) { linkParent(&Parent); }
 }; // class BinOpExpr
 
 #ifdef WITH_COMPLEX_EXPRS

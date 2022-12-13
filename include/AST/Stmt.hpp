@@ -21,19 +21,42 @@
 #include "Expr.hpp"
 #include "TreeNode.hpp"
 
-#include <list>
-
 namespace wsheeet::ast {
 
-class Scope;
+class Scope : public ExprParent {};
 
-class StmtBase : public ExprParent {};
+class StmtBase : public Scope {};
 
 class ExprStmt : public TreeNodeWParentAndChild<Scope, ExprBase>,
-                 public StmtBase {}; // class ExprStmt
+                 public StmtBase {
+  using NodeT = TreeNodeWParentAndChild<Scope, ExprBase>;
 
-class CompoundStmt : public TreeNodeWParentAndChild<Scope, std::list<StmtBase>>,
-                     public StmtBase {}; // class CompoundStmt
+public:
+  ExprStmt(ExprBase &Expr) : NodeT{nullptr, &Expr} {}
+  ExprStmt(Scope &S, ExprBase &Expr) : NodeT{&S, &Expr} {}
+
+  void linkScope(Scope *S) { linkParent(S); }
+  void linkScope(Scope &&S) { linkParent(std::move(S)); }
+}; // class ExprStmt
+
+class CompoundStmt : public TreeNodeWParentAndManyChildren<Scope, StmtBase>,
+                     public StmtBase {
+  using NodeT = TreeNodeWParentAndManyChildren<Scope, StmtBase>;
+
+public:
+  CompoundStmt() = default;
+  CompoundStmt(Scope &S) : NodeT(&S), StmtBase{} {}
+  CompoundStmt(StmtBase &Stmt) : NodeT(nullptr, &Stmt), StmtBase{} {}
+  CompoundStmt(Scope &S, StmtBase &Stmt) : NodeT(&S, &Stmt), StmtBase{} {}
+
+  void linkScope(Scope *S) { linkParent(S); }
+  void linkScope(Scope &&S) { linkParent(std::move(S)); }
+
+  std::ostream &print(std::ostream &os) {
+    os << "CompoundStmt 0x" << this;
+    return os;
+  }
+}; // class CompoundStmt
 
 #ifdef WITH_COMPOUND_CF
 class IfStmt

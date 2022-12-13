@@ -22,6 +22,7 @@
 #include <initializer_list>
 #include <list>
 #include <memory>
+#include <stdexcept>
 
 namespace wsheeet::ast {
 
@@ -91,24 +92,32 @@ public:
   using ParentTy = P;
 
 protected:
-  std::unique_ptr<ParentTy> Parent_;
+  ParentTy *Parent_ = nullptr;
 
+  TreeNodeWParent() = default;
   TreeNodeWParent(ParentTy *Parent) : Parent_{Parent} {}
 
 public:
   bool isRoot() const { return static_cast<bool>(Parent_); }
 
-  virtual const TreeNodeWParent &linkParent(ParentTy &&Parent) {
+  const TreeNodeWParent &linkParent(ParentTy *Parent) {
+    Parent_ = Parent;
+    return *this;
+  }
+
+  const TreeNodeWParent &linkParent(ParentTy &&Parent) {
+    if (Parent_ == nullptr)
+      throw std::runtime_error("Can't link parent from rvalue");
     *Parent_ = std::move(Parent);
     return *this;
   }
 
-  virtual const TreeNodeWParent &unlinkParent() {
-    Parent_.release();
+  const TreeNodeWParent &unlinkParent() {
+    Parent_ = nullptr;
     return *this;
   }
 
-  virtual ~TreeNodeWParent() { Parent_.release(); }
+  virtual ~TreeNodeWParent() = default;
 }; // class TreeNodeWParent
 
 static_assert(TreeNode<TreeNodeWParent<int>>,
@@ -125,7 +134,7 @@ public:
 protected:
   std::unique_ptr<ChildTy> Child_;
 
-  TreeNodeWChild(ChildTy *Child) : Child_{Child} {}
+  TreeNodeWChild(ChildTy *Child = nullptr) : Child_{Child} {}
 
 public:
   TreeNodeWChild &linkChild(ChildTy &&Child) {
@@ -153,7 +162,7 @@ static_assert(CanUnlinkChild<TreeNodeWChild<int>, int>,
               "TreeNodeWChild must can unlink child");
 
 template <class P, class C>
-class TreeNodeWParentAndChild : public TreeNodeWParent<P>,
+class TreeNodeWParentAndChild : virtual public TreeNodeWParent<P>,
                                 public TreeNodeWChild<C> {
 public:
   using ParentTy = P;
@@ -162,6 +171,14 @@ public:
 protected:
   using TreeNodeWParent<ParentTy>::Parent_;
   using TreeNodeWChild<ChildTy>::Child_;
+
+  TreeNodeWParentAndChild() = default;
+
+  TreeNodeWParentAndChild(ParentTy *Parent)
+      : TreeNodeWParent<P>{Parent}, TreeNodeWChild<C>{} {}
+
+  TreeNodeWParentAndChild(ChildTy *Child)
+      : TreeNodeWParent<P>{}, TreeNodeWChild<C>{Child} {}
 
   TreeNodeWParentAndChild(ParentTy *Parent, ChildTy *Child)
       : TreeNodeWParent<P>{Parent}, TreeNodeWChild<C>{Child} {}
@@ -202,7 +219,7 @@ protected:
 
 public:
   TreeNodeW2Children &linkLeft(LeftChildTy &&Child) {
-    *Left_ = Child;
+    *Left_ = std::move(Child);
     if constexpr (CanLinkParent<LeftChildTy, decltype(*this)>) {
       if (Left_)
         Left_->linkParent(this);
@@ -211,7 +228,7 @@ public:
   }
 
   TreeNodeW2Children &linkRight(RightChildTy &&Child) {
-    *Right_ = Child;
+    *Right_ = std::move(Child);
     if constexpr (CanLinkParent<RightChildTy, decltype(*this)>) {
       if (Right_)
         Right_->linkParent(this);
@@ -219,10 +236,12 @@ public:
     return this;
   }
 
-  TreeNodeW2Children &linkChild(LeftChildTy &&Child) { return linkLeft(Child); }
+  TreeNodeW2Children &linkChild(LeftChildTy &&Child) {
+    return linkLeft(std::move(Child));
+  }
 
   TreeNodeW2Children &linkChild(RightChildTy &&Child) {
-    return linkRight(Child);
+    return linkRight(std::move(Child));
   }
 
   TreeNodeW2Children &unlinkLeft() {
@@ -262,7 +281,7 @@ protected:
 
 public:
   TreeNodeW2Children &linkLeft(LeftChildTy &&Child) {
-    *Left_ = Child;
+    *Left_ = std::move(Child);
     if constexpr (CanLinkParent<LeftChildTy, decltype(*this)>) {
       if (Left_)
         Left_->linkParent(this);
@@ -271,7 +290,7 @@ public:
   }
 
   TreeNodeW2Children &linkRight(RightChildTy &&Child) {
-    *Right_ = Child;
+    *Right_ = std::move(Child);
     if constexpr (CanLinkParent<RightChildTy, decltype(*this)>) {
       if (Right_)
         Right_->linkParent(this);
@@ -313,6 +332,20 @@ protected:
   using TreeNodeWParent<ParentTy>::Parent_;
   using TreeNodeW2Children<LeftChildTy, RightChildTy>::Left_;
   using TreeNodeW2Children<LeftChildTy, RightChildTy>::Right_;
+
+  TreeNodeWParentAnd2Children(LeftChildTy *Left, RightChildTy *Right)
+      : TreeNodeWParent<ParentTy>{},
+        TreeNodeW2Children<LeftChildTy, RightChildTy>{Left, Right} {
+    if constexpr (CanLinkParent<LeftChildTy, decltype(*this)>) {
+      if (Left_)
+        Left_->linkParent(this);
+    }
+
+    if constexpr (CanLinkParent<RightChildTy, decltype(*this)>) {
+      if (Right_)
+        Right_->linkParent(this);
+    }
+  }
 
   TreeNodeWParentAnd2Children(ParentTy *Parent, LeftChildTy *Left,
                               RightChildTy *Right)
@@ -378,7 +411,7 @@ public:
   using TreeNodeW2Children<LeftChildTy, RightChildTy>::unlinkRight;
 
   TreeNodeW3Children &linkCenter(CenterChildTy &&child) {
-    *Center_ = child;
+    *Center_ = std::move(child);
     if constexpr (CanLinkParent<CenterChildTy, decltype(*this)>) {
       if (Center_)
         Center_->linkParent(this);
@@ -449,26 +482,37 @@ public:
   virtual ~TreeNodeWParentAnd3Children() = default;
 }; // class TreeNodeWParentAnd3Children
 
-template <typename C> class TreeNodeWManyChildren : virtual public TreeNodeBase {
+template <typename C>
+class TreeNodeWManyChildren : virtual public TreeNodeBase {
 public:
   using ChildTy = C;
 
 protected:
-  using ListTy = std::list<std::unique_ptr<ChildTy>>;
+  using ListTy = std::list<ChildTy *>;
   ListTy Children_;
 
   TreeNodeWManyChildren() = default;
 
-  TreeNodeWManyChildren(std::initializer_list<ChildTy *> Children)
-      : Children_{Children} {
-    for (auto &Child : Children_) {
+  TreeNodeWManyChildren(ChildTy *Children) : Children_(1, Children) {
+#ifdef NOW_RAW_LOOPS
+    for (auto *Child : Children_) {
       if (Child) {
         if constexpr (CanLinkParent<ChildTy, decltype(*this)>)
           Child->linkParent(this);
       } else {
-        Children.erase(&Child);
+        Children_.erase(Child);
       }
     }
+#else
+    for (auto It = Children_.begin(), End = Children_.end(); It != End; ++It) {
+      if (*It) {
+        if constexpr (CanLinkParent<ChildTy, decltype(*this)>)
+          It->linkParent(this);
+      } else {
+        Children_.erase(It);
+      }
+    }
+#endif
   }
 
 public:
@@ -478,7 +522,7 @@ public:
   auto end() const { return Children_.end(); }
 
   TreeNodeWManyChildren &linkChild(ChildTy &&Child) {
-    Children_.emplace_back(std::make_unique<ChildTy>(Child));
+    Children_.emplace_back(std::make_unique<ChildTy>(std::move(Child)));
     return *this;
   }
 
@@ -497,7 +541,7 @@ public:
 
 template <typename P, typename C>
 class TreeNodeWParentAndManyChildren : public TreeNodeWParent<P>,
-                                 public TreeNodeWManyChildren<C> {
+                                       public TreeNodeWManyChildren<C> {
 public:
   using ParentTy = P;
   using ChildTy = C;
@@ -506,20 +550,30 @@ protected:
   using TreeNodeWParent<ParentTy>::Parent_;
   using TreeNodeWManyChildren<ChildTy>::Children_;
 
-  TreeNodeWParentAndManyChildren(ParentTy *Parent,
-                           std::initializer_list<ChildTy *> Children)
-      : TreeNodeWParent<ParentTy>{Parent}, TreeNodeWManyChildren<ChildTy>{Children} {}
+  TreeNodeWParentAndManyChildren() = default;
+
+  TreeNodeWParentAndManyChildren(ParentTy *Parent)
+      : TreeNodeWParent<ParentTy>{Parent}, TreeNodeWManyChildren<ChildTy>{} {}
+
+  TreeNodeWParentAndManyChildren(ChildTy *Child)
+      : TreeNodeWParent<ParentTy>{}, TreeNodeWManyChildren<ChildTy>{Child} {}
+
+  TreeNodeWParentAndManyChildren(ParentTy *Parent, ChildTy *Child)
+      : TreeNodeWParent<ParentTy>{Parent}, TreeNodeWManyChildren<ChildTy>{
+                                               Child} {}
 
 public:
   using TreeNodeWParent<ParentTy>::isRoot;
   using TreeNodeWParent<ParentTy>::linkParent;
   using TreeNodeWParent<ParentTy>::unlinkParent;
 
-  using TreeNodeWManyChildren<ChildTy>::begin; // Does this use both const and non-const?
+  using TreeNodeWManyChildren<ChildTy>::begin; // Does this use both const and
+                                               // non-const?
   using TreeNodeWManyChildren<ChildTy>::end;   //
 
   using TreeNodeWManyChildren<ChildTy>::linkChild;
-  using TreeNodeWManyChildren<ChildTy>::unlinkChild; // Does this use all overloads?
+  using TreeNodeWManyChildren<ChildTy>::unlinkChild; // Does this use all
+                                                     // overloads?
 
   virtual ~TreeNodeWParentAndManyChildren() = default;
 }; // class TreeNodeWParentAndManyChildren

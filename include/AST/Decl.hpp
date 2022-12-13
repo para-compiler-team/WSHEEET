@@ -19,8 +19,8 @@
 #pragma once
 
 #include "Expr.hpp"
-#include "TreeNode.hpp"
 #include "Stmt.hpp"
+#include "TreeNode.hpp"
 
 #include <string>
 #include <string_view>
@@ -28,35 +28,60 @@
 namespace wsheeet::ast {
 
 class LayerDecl;
-class Scope : public ExprParent {}; // class Scope
 
 class GlobalScope : public TreeNodeWManyChildren<LayerDecl>, public Scope {
   using NodeT = TreeNodeWManyChildren<LayerDecl>;
+
 public:
-    GlobalScope() : NodeT{} {}
+  GlobalScope() : NodeT{} {}
+  GlobalScope(LayerDecl &Layer) : NodeT{&Layer} {}
+
+  std::ostream &print(std::ostream &os) {
+    os << "GlobalScope 0x" << std::hex << this;
+    return os;
+  }
 };
 
-class DeclBase : public TreeNodeWParent<Scope> {
-  using NodeT = TreeNodeWParent<Scope>;
+template <TreeNode ChildTy>
+class DeclBase : public TreeNodeWParentAndChild<Scope, ChildTy>, public Scope {
+  using NodeT = TreeNodeWParentAndChild<Scope, ChildTy>;
+
 public:
-   DeclBase(Scope &S) : NodeT(&S) {}
+  DeclBase() = default;
+  DeclBase(Scope &S) : NodeT(&S) {}
+  DeclBase(ChildTy &C) : NodeT(&C) {}
+  DeclBase(Scope &S, ChildTy &C) : NodeT(&S, &C) {}
 };
 
-class LayerDecl final : public DeclBase, public TreeNodeWChild<CompoundStmt>{
+class LayerDecl final : public DeclBase<CompoundStmt> {
   unsigned LayerNum_;
   std::string TUName_;
 
   using NodeT = TreeNodeWChild<CompoundStmt>;
 
 public:
+  LayerDecl(CompoundStmt &CStmt, unsigned LayerNumber)
+      : DeclBase{CStmt}, LayerNum_{LayerNumber}, TUName_{"unnamed layer"} {}
+
+  LayerDecl(CompoundStmt &CStmt, unsigned LayerNumber, std::string_view Name)
+      : DeclBase{CStmt}, LayerNum_{LayerNumber}, TUName_{Name} {}
+
   LayerDecl(GlobalScope &GScope, CompoundStmt &CStmt, unsigned LayerNumber)
-    : DeclBase{GScope}, NodeT{&CStmt}, LayerNum_{LayerNumber},
-        TUName_{"unnamed layer"} {}
+      : DeclBase{GScope, CStmt}, LayerNum_{LayerNumber}, TUName_{
+                                                             "unnamed layer"} {}
 
   LayerDecl(GlobalScope &GScope, CompoundStmt &CStmt, unsigned LayerNumber,
             std::string_view Name)
-      : DeclBase{GScope}, NodeT{&CStmt}, LayerNum_{LayerNumber},
-        TUName_{Name} {}
+      : DeclBase{GScope, CStmt}, LayerNum_{LayerNumber}, TUName_{Name} {}
+
+  void linkScope(Scope *S) { linkParent(S); }
+  void linkScope(Scope &&S) { linkParent(std::move(S)); }
+
+  std::ostream &print(std::ostream &os) {
+    os << "LayerDecl 0x" << std::hex << this << std::dec << '\'' << TUName_
+       << "' #" << LayerNum_;
+    return os;
+  }
 }; // class LayerDecl
 
 #ifdef WITH_GLUE
