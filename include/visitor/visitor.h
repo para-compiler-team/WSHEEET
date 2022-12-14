@@ -4,19 +4,15 @@
 
 #include <def_concepts.hpp>
 
-namespace wsheeet::ast {
-// template <Expr E>
-class BinOpExpr;
-} // namespace wsheeet::ast
 
 namespace wsheeet::visitor {
 
 struct InterpreitVisitor final {
-  template <typename T> auto visit(T &E) -> ast::detail::Datum;
+  auto visit(ast::Expr auto &E) -> ast::detail::Datum { return {}; }
 };
 
 } // namespace wsheeet::visitor
 
-extern template wsheeet::ast::detail::Datum
-wsheeet::visitor::InterpreitVisitor::visit<wsheeet::ast::BinOpExpr>(
-    wsheeet::ast::BinOpExpr &);
+// extern template wsheeet::ast::detail::Datum
+// wsheeet::visitor::InterpreitVisitor::visit<wsheeet::ast::BinOpExpr>(
+//     wsheeet::ast::BinOpExpr &);

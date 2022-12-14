@@ -27,7 +27,7 @@ struct AstVisitables<types<T0, Ts...>> : virtual AstVisitable<T0>,
                                          AstVisitables<types<Ts...>> {
   using AstVisitable<T0>::accept;
 };
-using supported_ast_return_types = types<ast::detail::Datum::types>;
+using SuppRetType = types<ast::detail::Datum::types>;
 
 } // namespace visitor
 
@@ -35,9 +35,8 @@ namespace ast {
 class TypeBase;
 class ExprParent {};
 
-class ExprBase
-    : public visitor::AstVisitables<visitor::supported_ast_return_types>,
-      public ExprParent {
+class ExprBase : public visitor::AstVisitables<visitor::SuppRetType>,
+                 public ExprParent {
 protected:
   TypeBase *Type;
   ExprBase(TypeBase &Ty) : Type{&Ty} {}

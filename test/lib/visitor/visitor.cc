@@ -4,26 +4,28 @@
 
 #include "operations.h"
 
-namespace wsheeet::visitor {
-
 template <>
-auto InterpreitVisitor::visit(ast::IntLiteral &E) -> ast::detail::Datum {
+auto wsheeet::visitor::InterpreitVisitor::visit(ast::IntLiteral &E)
+    -> ast::detail::Datum {
   return E.value();
 }
 
 template <>
-auto InterpreitVisitor::visit(ast::FPLiteral<float> &E) -> ast::detail::Datum {
+auto wsheeet::visitor::InterpreitVisitor::visit(ast::FPLiteral<float> &E)
+    -> ast::detail::Datum {
   return E.value();
 }
 
+// TODO doesn't work!!!
 // template<>
-// auto InterpreitVisitor::visit(ast::FPLiteral<double> &E) ->
+// auto wsheeet::visitor::InterpreitVisitor::visit(ast::FPLiteral<double> &E) ->
 // ast::detail::Datum {
 //   return E.value();
 // }
 
 template <>
-auto InterpreitVisitor::visit(ast::BinOpExpr &E) -> ast::detail::Datum {
+auto wsheeet::visitor::InterpreitVisitor::visit(wsheeet::ast::BinOpExpr &E)
+    -> ast::detail::Datum {
   auto &&L = E.LHS().accept(*this);
   auto &&R = E.RHS().accept(*this);
 
@@ -39,5 +41,3 @@ auto InterpreitVisitor::visit(ast::BinOpExpr &E) -> ast::detail::Datum {
   // Return blank.
   // return {};
 }
-
-} // namespace wsheeet::visitor

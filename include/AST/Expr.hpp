@@ -170,9 +170,7 @@ public:
 
   void linkParent(ExprParent &Parent) { linkParent(&Parent); }
 
-  auto accept(visitor::InterpreitVisitor &v) -> detail::Datum override {
-    return v.visit(*this);
-  }
+  auto accept(visitor::InterpreitVisitor &v) -> detail::Datum override;
 }; // class BinOpExpr
 
 #ifdef WITH_COMPLEX_EXPRS
@@ -216,3 +214,11 @@ class BindExpr final
 #endif
 
 } // namespace wsheeet::ast
+
+// extern template wsheeet::ast::detail::Datum
+// wsheeet::visitor::InterpreitVisitor::visit<wsheeet::ast::BinOpExpr>(wsheeet::ast::BinOpExpr
+// &); inline auto
+// wsheeet::ast::BinOpExpr::accept(wsheeet::visitor::InterpreitVisitor &v) ->
+// wsheeet::ast::detail::Datum {
+//   return v.visit(*this);
+// }

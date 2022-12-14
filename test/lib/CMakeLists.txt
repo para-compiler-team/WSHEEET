@@ -1,6 +1,7 @@
 add_executable(${PROJECT_NAME})
 target_sources(${PROJECT_NAME} PRIVATE
   AST/E2E.cpp
+  AST/instantiation.cc
   visitor/visitor.cc
 )
 
