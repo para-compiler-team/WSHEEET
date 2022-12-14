@@ -1,20 +1,43 @@
 #include "visitor/visitor.h"
 
-#include "AST/ast.h"
+#include <AST/Expr.hpp>
 
 #include "operations.h"
 
-namespace visitor {
+namespace wsheeet::visitor {
 
-ast::detail::Datum InterpreitVisitor::visit(ast::ValueNode &N) {
-  return N.Value;
-}
-ast::detail::Datum InterpreitVisitor::visit(ast::PlusNode &N) {
-  using namespace detail; // For operator+ to be accessable.
-  auto lhs = N.lft->accept(*this);
-  auto rhs = N.rgh->accept(*this);
-
-  return lhs + rhs;
+template <>
+auto InterpreitVisitor::visit(ast::IntLiteral &E) -> ast::detail::Datum {
+  return E.value();
 }
 
-} // namespace visitor
+template <>
+auto InterpreitVisitor::visit(ast::FPLiteral<float> &E) -> ast::detail::Datum {
+  return E.value();
+}
+
+// template<>
+// auto InterpreitVisitor::visit(ast::FPLiteral<double> &E) ->
+// ast::detail::Datum {
+//   return E.value();
+// }
+
+template <>
+auto InterpreitVisitor::visit(ast::BinOpExpr &E) -> ast::detail::Datum {
+  auto &&L = E.LHS().accept(*this);
+  auto &&R = E.RHS().accept(*this);
+
+  switch (E.opcode()) {
+  case ast::BinOpcode::PLUS:
+    return L + R;
+
+  default:
+    std::cout << "Not Implmented yet.\n";
+    break;
+  }
+  return L;
+  // Return blank.
+  // return {};
+}
+
+} // namespace wsheeet::visitor

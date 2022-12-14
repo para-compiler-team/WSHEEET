@@ -1,7 +1,13 @@
-if(BUILD_TESTING)
-  set(TESTS_LIST token E2E)
-  foreach(TEST_NAME IN LISTS TESTS_LIST)
-    add_executable(${TEST_NAME} "${CMAKE_CURRENT_SOURCE_DIR}/AST/${TEST_NAME}.cpp")
-    add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
-  endforeach()
-endif()
+add_executable(${PROJECT_NAME})
+target_sources(${PROJECT_NAME} PRIVATE
+  AST/E2E.cpp
+  visitor/visitor.cc
+)
+
+target_include_directories(${PROJECT_NAME} PUBLIC ${Boost_INCLUDE_DIRS})
+
+#find_package(Boost REQUIRED)
+#add_subdirectory(visitor)
+
+#target_link_libraries(${PROJECT_NAME} AST)
+#target_link_libraries(${PROJECT_NAME} visitor)

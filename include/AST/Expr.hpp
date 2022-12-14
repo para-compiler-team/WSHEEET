@@ -22,25 +22,16 @@
 #include "Type.hpp"
 #include "TypeBuilder.hpp"
 
+#include "datum.h"
+
+#include <def_concepts.hpp>
+#include <visitor/visitor.h>
+
 #include <concepts>
 #include <string>
 #include <string_view>
 
 namespace wsheeet::ast {
-
-class ExprParent {};
-
-class ExprBase : public ExprParent {
-protected:
-  TypeBase *Type;
-  ExprBase(TypeBase &Ty) : Type{&Ty} {}
-
-public:
-  TypeBase &type() { return *Type; }
-}; // class ExprBase
-
-template <typename T>
-concept Expr = std::derived_from<T, ExprBase>;
 
 template <SimpleType T>
 class ConstSimpleValueExpr final : protected TreeNodeWParent<ExprParent>,
@@ -64,6 +55,10 @@ public:
   void linkParent(ExprParent *Parent) { linkParent(Parent); }
 
   void linkParent(ExprParent &Parent) { linkParent(&Parent); }
+
+  auto accept(visitor::InterpreitVisitor &v) -> detail::Datum override {
+    return v.visit(*this);
+  }
 }; // class ConstValueExpr
 
 using IntLiteral = ConstSimpleValueExpr<IntTy>;
@@ -109,6 +104,10 @@ public:
   void linkParent(ExprParent *Parent) { linkParent(Parent); }
 
   void linkParent(ExprParent &Parent) { linkParent(&Parent); }
+
+  auto accept(visitor::InterpreitVisitor &v) -> detail::Datum override {
+    return v.visit(*this);
+  }
 }; // class UnOpExpr
 
 enum class BinOpcode {
@@ -170,6 +169,10 @@ public:
   void linkParent(ExprParent *Parent) { linkParent(Parent); }
 
   void linkParent(ExprParent &Parent) { linkParent(&Parent); }
+
+  auto accept(visitor::InterpreitVisitor &v) -> detail::Datum override {
+    return v.visit(*this);
+  }
 }; // class BinOpExpr
 
 #ifdef WITH_COMPLEX_EXPRS

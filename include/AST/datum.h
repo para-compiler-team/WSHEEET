@@ -6,7 +6,7 @@
 #include <iostream>
 #include <map>
 
-namespace ast {
+namespace wsheeet::ast {
 namespace detail {
 
 struct Blank {
@@ -21,9 +21,5 @@ inline std::ostream &operator<<(std::ostream &os, const Blank &blank) {
 
 using Datum = boost::variant<Blank, int, float>;
 
-using DatumID = unsigned short;
-using DatumType = std::pair<DatumID, Datum>;
-using Datums = std::map<DatumID, Datum>;
-
 } // namespace detail
-} // namespace ast
+} // namespace wsheeet::ast

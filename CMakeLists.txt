@@ -37,8 +37,8 @@ if(${FORCE_COLORED_OUTPUT})
 endif()
 
 include_directories(include)
-add_subdirectory(lib)
 
+find_package(Boost REQUIRED)
 find_package(GTest)
 
 if(GTest_FOUND)

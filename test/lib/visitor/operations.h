@@ -2,7 +2,7 @@
 
 #include "AST/datum.h"
 
-namespace visitor {
+namespace wsheeet::visitor {
 namespace detail {
 
 struct IsBlank : public boost::static_visitor<bool> {
@@ -40,14 +40,14 @@ struct Print : public boost::static_visitor<ast::detail::Datum> {
 
   static constexpr const char *text = "\'out\'";
 };
+} // namespace detail
 
 inline ast::detail::Datum operator+(ast::detail::Datum const &lhs,
                                     ast::detail::Datum const &rhs) {
-  return boost::apply_visitor(Plus(), lhs, rhs);
+  return boost::apply_visitor(detail::Plus(), lhs, rhs);
 }
 inline ast::detail::Datum print(ast::detail::Datum const &lhs) {
-  return boost::apply_visitor(Print(), lhs);
+  return boost::apply_visitor(detail::Print(), lhs);
 }
 
-} // namespace detail
-} // namespace visitor
+} // namespace wsheeet::visitor

@@ -3,6 +3,8 @@
 #include <AST/Stmt.hpp>
 #include <AST/TypeBuilder.hpp>
 
+#include <visitor/visitor.h>
+
 #include <iostream>
 
 int main() try {
@@ -16,6 +18,11 @@ int main() try {
   auto *LayerBody = new ast::CompoundStmt{*Stmt};
   auto *LayerDecl = new ast::LayerDecl{*LayerBody, 0};
   auto GS = std::make_unique<ast::GlobalScope>(*LayerDecl);
+
+  // USAGE
+  visitor::InterpreitVisitor IV;
+  std::cout << Expr->accept(IV) << '\n';
+
   LayerDecl->print(std::cout);
   std::cout << std::endl;
   GS->print(std::cout);
