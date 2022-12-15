@@ -1,6 +1,7 @@
 #include "visitor/visitor.h"
 
 #include <AST/Expr.hpp>
+#include <AST/Stmt.hpp>
 
 #include "operations.h"
 
@@ -41,6 +42,19 @@ auto InterpreitVisitor::visit(wsheeet::ast::BinOpExpr &E)
   return L;
   // Return blank.
   // return {};
+}
+
+template <>
+auto InterpreitVisitor::visit(ast::ExprStmt &E) -> InterpreitVisitor::retty {
+  return E.child().accept(*this);
+}
+
+template <>
+auto InterpreitVisitor::visit(ast::CompoundStmt &E)
+    -> InterpreitVisitor::retty {
+  // This should be iterated throught all children.
+  // (((((FUCK.)))))
+  return (*E.begin())->accept(*this);
 }
 
 } // namespace wsheeet::visitor

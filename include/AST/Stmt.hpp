@@ -21,11 +21,15 @@
 #include "Expr.hpp"
 #include "TreeNode.hpp"
 
+#include <visitor/detail.h>
+#include <visitor/visitor.h>
+
 namespace wsheeet::ast {
 
 class Scope : public ExprParent {};
 
-class StmtBase : public Scope {};
+class StmtBase : public Scope,
+                 public visitor::AstVisitable<visitor::InterpreitVisitor> {};
 
 class ExprStmt : public TreeNodeWParentAndChild<Scope, ExprBase>,
                  public StmtBase {
@@ -35,8 +39,14 @@ public:
   ExprStmt(ExprBase &Expr) : NodeT{nullptr, &Expr} {}
   ExprStmt(Scope &S, ExprBase &Expr) : NodeT{&S, &Expr} {}
 
+  ExprBase &child() { return *Child_; }
+  const ExprBase &child() const { return *Child_; }
+
   void linkScope(Scope *S) { linkParent(S); }
   void linkScope(Scope &&S) { linkParent(std::move(S)); }
+
+  auto accept(visitor::InterpreitVisitor &v)
+      -> visitor::InterpreitVisitor::retty override;
 }; // class ExprStmt
 
 class CompoundStmt : public TreeNodeWParentAndManyChildren<Scope, StmtBase>,
@@ -56,6 +66,9 @@ public:
     os << "CompoundStmt 0x" << this;
     return os;
   }
+
+  auto accept(visitor::InterpreitVisitor &v)
+      -> visitor::InterpreitVisitor::retty override;
 }; // class CompoundStmt
 
 #ifdef WITH_COMPOUND_CF
