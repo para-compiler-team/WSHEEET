@@ -19,7 +19,7 @@ inline std::ostream &operator<<(std::ostream &os, const Blank &blank) {
   return os << "(blank)";
 }
 
-using Datum = boost::variant<Blank, int, float>;
+using Datum = boost::variant<Blank, int, float, double>;
 
 } // namespace detail
 } // namespace wsheeet::ast

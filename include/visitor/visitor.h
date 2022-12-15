@@ -4,7 +4,6 @@
 
 #include <def_concepts.hpp>
 
-
 namespace wsheeet::visitor {
 
 struct InterpreitVisitor final {
@@ -12,7 +11,3 @@ struct InterpreitVisitor final {
 };
 
 } // namespace wsheeet::visitor
-
-// extern template wsheeet::ast::detail::Datum
-// wsheeet::visitor::InterpreitVisitor::visit<wsheeet::ast::BinOpExpr>(
-//     wsheeet::ast::BinOpExpr &);

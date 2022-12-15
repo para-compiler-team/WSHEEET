@@ -16,12 +16,11 @@ auto wsheeet::visitor::InterpreitVisitor::visit(ast::FPLiteral<float> &E)
   return E.value();
 }
 
-// TODO doesn't work!!!
-// template<>
-// auto wsheeet::visitor::InterpreitVisitor::visit(ast::FPLiteral<double> &E) ->
-// ast::detail::Datum {
-//   return E.value();
-// }
+template <>
+auto wsheeet::visitor::InterpreitVisitor::visit(ast::FPLiteral<double> &E)
+    -> ast::detail::Datum {
+  return E.value();
+}
 
 template <>
 auto wsheeet::visitor::InterpreitVisitor::visit(wsheeet::ast::BinOpExpr &E)

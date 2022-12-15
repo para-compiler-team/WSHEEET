@@ -214,11 +214,3 @@ class BindExpr final
 #endif
 
 } // namespace wsheeet::ast
-
-// extern template wsheeet::ast::detail::Datum
-// wsheeet::visitor::InterpreitVisitor::visit<wsheeet::ast::BinOpExpr>(wsheeet::ast::BinOpExpr
-// &); inline auto
-// wsheeet::ast::BinOpExpr::accept(wsheeet::visitor::InterpreitVisitor &v) ->
-// wsheeet::ast::detail::Datum {
-//   return v.visit(*this);
-// }
