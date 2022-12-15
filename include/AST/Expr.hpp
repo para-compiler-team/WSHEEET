@@ -24,7 +24,7 @@
 
 #include "datum.h"
 
-#include <def_concepts.hpp>
+#include <visitor/detail.h>
 #include <visitor/visitor.h>
 
 #include <concepts>
@@ -32,6 +32,27 @@
 #include <string_view>
 
 namespace wsheeet::ast {
+
+class TypeBase;
+class ExprParent {};
+
+// TODO to extend possible Visitors to visit Expr, add them here.
+// ex: public visitor::AstVisitable<visitor::InterpreitVisitor, V1, V2, ...>.
+// Do not forget to specify for all of them function "accept".
+class ExprBase : public ExprParent,
+                 public visitor::AstVisitable<visitor::InterpreitVisitor> {
+protected:
+  TypeBase *Type;
+  ExprBase(TypeBase &Ty) : Type{&Ty} {}
+  
+public:
+  TypeBase &type() { return *Type; }
+}; // class ExprBase
+
+// TODO this concept better to create independantly from visitor to be able to use it inside visitor.h
+template <typename T>
+concept Expr = std::derived_from<T, ExprBase>;
+
 
 template <SimpleType T>
 class ConstSimpleValueExpr final : protected TreeNodeWParent<ExprParent>,
@@ -56,7 +77,7 @@ public:
 
   void linkParent(ExprParent &Parent) { linkParent(&Parent); }
 
-  auto accept(visitor::InterpreitVisitor &v) -> detail::Datum override {
+  auto accept(visitor::InterpreitVisitor &v) -> visitor::InterpreitVisitor::retty override {
     return v.visit(*this);
   }
 }; // class ConstValueExpr
@@ -105,7 +126,7 @@ public:
 
   void linkParent(ExprParent &Parent) { linkParent(&Parent); }
 
-  auto accept(visitor::InterpreitVisitor &v) -> detail::Datum override {
+  auto accept(visitor::InterpreitVisitor &v) -> visitor::InterpreitVisitor::retty override {
     return v.visit(*this);
   }
 }; // class UnOpExpr
@@ -170,7 +191,7 @@ public:
 
   void linkParent(ExprParent &Parent) { linkParent(&Parent); }
 
-  auto accept(visitor::InterpreitVisitor &v) -> detail::Datum override;
+  auto accept(visitor::InterpreitVisitor &v) -> visitor::InterpreitVisitor::retty override;
 }; // class BinOpExpr
 
 #ifdef WITH_COMPLEX_EXPRS
