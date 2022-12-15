@@ -43,7 +43,9 @@ public:
 };
 
 template <TreeNode ChildTy>
-class DeclBase : public TreeNodeWParentAndChild<Scope, ChildTy>, public Scope {
+class DeclBase : public TreeNodeWParentAndChild<Scope, ChildTy>,
+                 public Scope,
+                 public visitor::AstVisitable<visitor::InterpreitVisitor> {
   using NodeT = TreeNodeWParentAndChild<Scope, ChildTy>;
 
 public:
@@ -77,11 +79,17 @@ public:
   void linkScope(Scope *S) { linkParent(S); }
   void linkScope(Scope &&S) { linkParent(std::move(S)); }
 
+  StmtBase &child() { return *Child_; }
+  const StmtBase &child() const { return *Child_; }
+
   std::ostream &print(std::ostream &os) {
     os << "LayerDecl 0x" << std::hex << this << std::dec << '\'' << TUName_
        << "' #" << LayerNum_;
     return os;
   }
+
+  auto accept(visitor::InterpreitVisitor &v)
+      -> visitor::InterpreitVisitor::retty override;
 }; // class LayerDecl
 
 #ifdef WITH_GLUE

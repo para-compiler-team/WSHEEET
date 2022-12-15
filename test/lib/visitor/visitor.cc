@@ -1,7 +1,6 @@
 #include "visitor/visitor.h"
 
-#include <AST/Expr.hpp>
-#include <AST/Stmt.hpp>
+#include <AST/Decl.hpp>
 
 #include "operations.h"
 
@@ -55,6 +54,11 @@ auto InterpreitVisitor::visit(ast::CompoundStmt &E)
   // This should be iterated throught all children.
   // (((((FUCK.)))))
   return (*E.begin())->accept(*this);
+}
+
+template <>
+auto InterpreitVisitor::visit(ast::LayerDecl &E) -> InterpreitVisitor::retty {
+  return E.child().accept(*this);
 }
 
 } // namespace wsheeet::visitor
