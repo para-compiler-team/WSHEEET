@@ -2,8 +2,6 @@
 
 #include <AST/datum.h>
 
-#include <def_concepts.hpp>
-
 namespace wsheeet::visitor {
 
 struct InterpreitVisitor final {
