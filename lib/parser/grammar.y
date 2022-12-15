@@ -22,17 +22,38 @@
 #include <iostream>
 #include <string>
 #include <utility>
-
+#include "AST/TreeNode.hpp"
+#include "AST/Expr.hpp"
 // forward decl of argument to parser
 namespace yy { class LexerDriver; }
 
 struct myType {
+	wsheeet::ast::TreeNodeBase* m_node{nullptr};
+	enum class NodeT {
+		UDF,
+		INT_LITERAL,
+		DOUBLE_LITERAL,
+		FLOAT_LITERAL,
+		UNOP_EXPRESSION,
+		BINOP_EXPRESSION,
+		EXPRESSION_STATEMENT,
+		COMPOUND_STATEMENT,
+		LAYER_DECL,
+		GLOBL_SCOPE,
+	};
+
+	NodeT m_nodeType{NodeT::UDF};
+
+
 	int a;
 	int b;
 	void hello() {
 		std::cout << "HELLLLLO" << std::endl;
 		/* std::cerr << yylval->as<std::string>(); */
 		}
+	int i_const{200000000};
+	float f_const{12222.}; 
+
 };
 
 }
@@ -42,6 +63,8 @@ struct myType {
 #include "lexerdriver.hpp"
 
 namespace yy {
+
+namespace ast = wsheeet::ast; 
 
 parser::token_type yylex(parser::semantic_type* yylval,                         
                          LexerDriver* driver);
@@ -112,7 +135,7 @@ parser::token_type yylex(parser::semantic_type* yylval,
 %%
 
 translation_unit
-	: layer_definition_list
+	: layer_definition_list { std::cout << &(driver->m_builder) << std::endl; }
 	| block_item_list
 	;
 
@@ -231,7 +254,13 @@ primary_expression
 	;
 
 constant_literal
-	: I_CONSTANT	{std::cout << $$.a << "gg " << $$.b  << std::endl;}	// includes character_constant
+	: I_CONSTANT	{
+						auto &type = driver->m_builder.get<ast::IntTy>();
+						auto *Imm = new ast::ConstSimpleValueExpr<ast::IntTy>{type, $1.i_const};
+						// $$.m_node = dynamic_cast<ast::TreeNodeBase*>(Imm);
+						$$.m_node = dynamic_cast<ast::ExprBase*>($1.m_node);
+						// $$.m_nodeType = myType::NodeT::INT_LITERAL;
+					}	// includes character_constant
 	| F_CONSTANT
 	;
 
@@ -314,7 +343,15 @@ multiplicative_expression
 
 additive_expression
 	: multiplicative_expression
-	| additive_expression '+' multiplicative_expression
+	| additive_expression '+' multiplicative_expression {
+															auto &type = driver->m_builder.get<ast::IntTy>();
+															// auto *LHS = dynamic_cast<ast::ExprBase*>($1.m_node);
+															// auto *RHS = dynamic_cast<ast::ExprBase*>($3.m_node);
+															auto *LHS = new ast::ExprBase{type};
+															auto *RHS = new ast::ExprBase{type};
+															auto *Expr = new ast::BinOpExpr{*LHS, *RHS, ast::BinOpcode::PLUS};
+
+														}
 	| additive_expression '-' multiplicative_expression
 	;
 

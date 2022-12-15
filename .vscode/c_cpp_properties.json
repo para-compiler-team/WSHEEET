@@ -1,12 +1,12 @@
 {
     "env": {
-      "myDefaultIncludePath": ["${workspaceFolder}/include"]
+      "myDefaultIncludePath": ["${workspaceFolder}/include/**"]
     },
     "configurations": [
       {
         "name": "Linux",
         "intelliSenseMode": "${default}",
-        "includePath": ["${myDefaultIncludePath}", "${workspaceFolder}/hidden", "${workspaceFolder}/build/*"],
+        "includePath": ["${myDefaultIncludePath}", "${workspaceFolder}/hidden", "${workspaceFolder}/build/**"],
         "defines": [],
         // "forcedInclude": ["${workspaceFolder}/include/config.h"],
         "compilerPath": "/usr/bin/gcc",

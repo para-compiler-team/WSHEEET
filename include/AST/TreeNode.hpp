@@ -26,7 +26,10 @@
 
 namespace wsheeet::ast {
 
-class TreeNodeBase {}; // class ITreeNode
+class TreeNodeBase {
+  public:
+  virtual ~TreeNodeBase() = default;
+}; // class ITreeNode
 
 template <class T>
 concept TreeNode = std::derived_from<T, TreeNodeBase>;

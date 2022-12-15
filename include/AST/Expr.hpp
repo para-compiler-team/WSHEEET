@@ -34,19 +34,27 @@
 namespace wsheeet::ast {
 
 class TypeBase;
-class ExprParent {};
+class ExprParent : virtual public TreeNodeBase {
+  public:
+  virtual ~ExprParent() = default;
+};
+// class ExprParent {};
 
 // TODO to extend possible Visitors to visit Expr, add them here.
 // ex: public visitor::AstVisitable<visitor::InterpreitVisitor, V1, V2, ...>.
 // Do not forget to specify for all of them function "accept".
 class ExprBase : public ExprParent,
                  public visitor::AstVisitable<visitor::InterpreitVisitor> {
-protected:
+public:
   TypeBase *Type;
   ExprBase(TypeBase &Ty) : Type{&Ty} {}
   
 public:
   TypeBase &type() { return *Type; }
+  virtual ~ExprBase() = default;
+  auto accept(visitor::InterpreitVisitor &v) -> visitor::InterpreitVisitor::retty override {
+    return v.visit(*this);
+  }
 }; // class ExprBase
 
 // TODO this concept better to create independantly from visitor to be able to use it inside visitor.h
@@ -55,7 +63,7 @@ concept Expr = std::derived_from<T, ExprBase>;
 
 
 template <SimpleType T>
-class ConstSimpleValueExpr final : protected TreeNodeWParent<ExprParent>,
+class ConstSimpleValueExpr final : public TreeNodeWParent<ExprParent>,
                                    public ExprBase {
 public:
   using TypeTy = T;
@@ -165,7 +173,7 @@ enum class BinOpcode {
 };
 
 class BinOpExpr final
-    : protected TreeNodeWParentAnd2Children<ExprParent, ExprBase, ExprBase>,
+    : public TreeNodeWParentAnd2Children<ExprParent, ExprBase, ExprBase>,
       public ExprBase {
   BinOpcode Opcode_;
 
