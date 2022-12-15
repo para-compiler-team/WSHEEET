@@ -1,0 +1,24 @@
+{
+    "env": {
+      "myDefaultIncludePath": ["${workspaceFolder}/include"]
+    },
+    "configurations": [
+      {
+        "name": "Linux",
+        "intelliSenseMode": "${default}",
+        "includePath": ["${myDefaultIncludePath}", "${workspaceFolder}/hidden", "${workspaceFolder}/build/*"],
+        "defines": [],
+        // "forcedInclude": ["${workspaceFolder}/include/config.h"],
+        "compilerPath": "/usr/bin/gcc",
+        "cStandard": "c11",
+        "cppStandard": "c++20",
+        // "compileCommands": "/path/to/compile_commands.json",
+        "browse": {
+          "path": ["${workspaceFolder}"],
+          "limitSymbolsToIncludedHeaders": true,
+          "databaseFilename": ""
+        }
+      }
+    ],
+    "version": 4
+  }

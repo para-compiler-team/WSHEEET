@@ -1,0 +1,100 @@
+layer(0, "square") {
+
+v0 : int = input(0);
+output(0, v0);
+
+v0 : int = input(0);
+output(0, v0);
+
+v0 = 0;
+v1 : double = v0;
+v3 : int;
+output(0, v1);
+
+
+v0 : int(16) = 0;
+
+arr0 = repeat(v0, 5);
+arr1 : int[5] = {1, 2, 3, 4};
+arr2 : vector<int, 5> = {1, 2, 3, 4, 5};
+v3 = 3;
+v4 = arr0[v3];
+v5 = arr2[3];
+
+
+s0 = glue(v0, v2);
+v3 = s0[0];
+s1 = glue(s0 : x, v0 : y, arr0 : z);
+v5 = s1.y;
+v6 = s1.z[0];
+s2 : { x : int[5], y : double } = glue(repeat(v0, 5), v1);
+s2.x = repeat(0, 5);
+
+
+f0 = { v3 = input(0) + 1; v3 * v3; };
+v7 = f0(2); // but not f0(2, 3)
+f1 : (x) = { v3 = x + 1; v3 * v3; };
+f2 : (x, y) = { v3 = x + y; v3 * v3; };
+f3 : (x : int, y : double) : int = { v3 = x + y; v3 * v3; };
+v8 = f3(v0, v1);
+
+s3 : { x : int, g : () } = glue(v0, bind(f1, s3.x));
+v9 = s3.g(); // (v0 + 1) * (v0 + 1);
+
+if (v2 == 0)
+  v0 = f1(v0);
+
+if (v2 == 0) {
+  v0 = f1(v0);
+}
+
+if (v0 == v2) {
+  v0 = f1(v0);
+}
+else {
+  v2 = f1(v2);
+}
+
+f4 : (x) = { if (x < 2) return 1; x * f4(x - 1); };
+
+f5 : (x) = x * x;
+f6 : (x) = { x * x; };
+f7 : (x) = { return x * x; };
+
+f5 = f4;
+
+f8 : (x : int) =  x + 1;
+f9 : (x : int) =  x * x + 1;
+
+f8 = f9;
+
+v0 = 5;
+for (x in 0:5)
+  v0 = v0 + x;
+
+for (x in arr0) {
+  v0 = v0 + x;
+}
+
+n = 0;
+a = 0;
+b = 1;
+x : int = input(0);
+
+while(n < x) {
+  n = n + 1;
+
+  if (n == 1)
+    output(0, a);
+
+  if (n == 2)
+    output(0, b);
+
+  if (n > 2) {
+    tmp = b;
+    b = a + b;
+    a = tmp;
+    output(0, b);
+  }
+}
+}

@@ -46,3 +46,9 @@ if(GTest_FOUND)
   enable_testing()
   add_subdirectory(test)
 endif()
+
+set(INCLUDE_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/include)
+set(SRC_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/lib)
+list(APPEND INCLUDE_DIRS ${INCLUDE_PREFIX})
+
+add_subdirectory(lib)
