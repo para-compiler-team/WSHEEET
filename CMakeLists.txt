@@ -16,7 +16,7 @@
 # WSHEEET. If not, see <https://www.gnu.org/licenses/>.
 # ---------------------------------------------------------------------------- #
 
-cmake_minimum_required(VERSION 3.24.2)
+cmake_minimum_required(VERSION 3.21.2)
 
 project(WSHEEET)
 
@@ -38,7 +38,7 @@ endif()
 
 include_directories(include)
 
-find_package(Boost REQUIRED)
+find_package(Boost REQUIRED)# №PATHS ../boost/boost_1_61_0/ NO_DEFAULT_PATH)
 find_package(GTest)
 
 if(GTest_FOUND)
