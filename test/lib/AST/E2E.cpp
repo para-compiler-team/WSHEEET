@@ -22,7 +22,7 @@ int main() try {
 
   // USAGE
   visitor::InterpreitVisitor IV;
-  std::cout << LayerDecl->accept(IV) << '\n';
+  std::cout << GS->accept(IV) << '\n';
 
   LayerDecl->print(std::cout);
   std::cout << std::endl;

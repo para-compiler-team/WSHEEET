@@ -29,7 +29,9 @@ namespace wsheeet::ast {
 
 class LayerDecl;
 
-class GlobalScope : public TreeNodeWManyChildren<LayerDecl>, public Scope {
+class GlobalScope : public TreeNodeWManyChildren<LayerDecl>,
+                    public Scope,
+                    visitor::AstVisitable<visitor::InterpreitVisitor> {
   using NodeT = TreeNodeWManyChildren<LayerDecl>;
 
 public:
@@ -40,6 +42,9 @@ public:
     os << "GlobalScope 0x" << std::hex << this;
     return os;
   }
+
+  auto accept(visitor::InterpreitVisitor &v)
+      -> visitor::InterpreitVisitor::retty override;
 };
 
 template <TreeNode ChildTy>

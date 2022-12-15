@@ -61,6 +61,13 @@ auto InterpreitVisitor::visit(ast::LayerDecl &E) -> InterpreitVisitor::retty {
   return E.child().accept(*this);
 }
 
+template <>
+auto InterpreitVisitor::visit(ast::GlobalScope &E) -> InterpreitVisitor::retty {
+  // This should be iterated throught all children.
+  // (((((FUCK.)))))
+  return (*E.begin())->accept(*this);
+}
+
 } // namespace wsheeet::visitor
 
 
